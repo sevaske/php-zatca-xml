@@ -41,7 +41,7 @@
         "psr/http-client": "^1.0",
         "phpseclib/phpseclib": "^3.0",
         "sevaske/zatca-api": "^1.0",
-        "brick/math": "^0.12"
+        "brick/math": "^0.12||^0.13||^0.14"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
