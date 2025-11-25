@@ -44,16 +44,8 @@ class CustomerMapper
             return new Party;
         }
 
-        // Map the TaxScheme for the customer.
-        $taxScheme = (new TaxScheme)->setId($data['taxScheme']['id'] ?? 'VAT');
-
         // Map the LegalEntity for the customer.
         $legalEntity = (new LegalEntity)->setRegistrationName($data['registrationName'] ?? '');
-
-        // Map the PartyTaxScheme for the customer.
-        $partyTaxScheme = (new PartyTaxScheme)
-            ->setTaxScheme($taxScheme)
-            ->setCompanyId($data['taxId'] ?? '');
 
         // Map the Address for the customer.
         $address = (new Address)
@@ -67,8 +59,25 @@ class CustomerMapper
         // Create and populate the Party object.
         $party = (new Party)
             ->setLegalEntity($legalEntity)
-            ->setPartyTaxScheme($partyTaxScheme)
             ->setPostalAddress($address);
+
+        // Map the TaxScheme for the customer.
+        if ($taxSchemeId = $data['taxScheme']['id'] ?? 'VAT') {
+            $taxId = $data['taxId'] ?: null;
+
+            // Map the PartyTaxScheme for the customer.
+            if ($taxSchemeId !== 'VAT' || $taxId) {
+                $taxScheme = (new TaxScheme)->setId($taxSchemeId);
+                $partyTaxScheme = (new PartyTaxScheme)
+                    ->setTaxScheme($taxScheme);
+
+                if ($taxId) {
+                    $partyTaxScheme->setCompanyId($taxId);
+                }
+
+                $party->setPartyTaxScheme($partyTaxScheme);
+            }
+        }
 
         // Set party identification if available.
         if (isset($data['identificationId'])) {
