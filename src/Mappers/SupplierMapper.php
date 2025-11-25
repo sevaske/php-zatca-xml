@@ -40,7 +40,8 @@ class SupplierMapper
      */
     public function map(array $data): Party
     {
-        // Map the TaxScheme for the supplier.
+        // ZATCA requirement: Supplier is always treated as a taxable person with VAT registration.
+        // Map the TaxScheme for the supplier (always VAT).
         $taxScheme = (new TaxScheme)
             ->setId($data['taxScheme']['id'] ?? 'VAT');
 
@@ -49,6 +50,7 @@ class SupplierMapper
             ->setRegistrationName($data['registrationName'] ?? '');
 
         // Map the PartyTaxScheme for the supplier.
+        // Supplier must always provide VAT number (CompanyID) and VAT tax scheme.
         $partyTaxScheme = (new PartyTaxScheme)
             ->setTaxScheme($taxScheme)
             ->setCompanyId($data['taxId'] ?? '');

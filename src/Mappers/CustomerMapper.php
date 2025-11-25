@@ -61,25 +61,21 @@ class CustomerMapper
             ->setLegalEntity($legalEntity)
             ->setPostalAddress($address);
 
-        // Map the TaxScheme for the customer.
-        if ($taxSchemeId = $data['taxScheme']['id'] ?? 'VAT') {
-            $taxId = $data['taxId'] ?: null;
+        // ZATCA requirement: Customer tax scheme handling based on VAT registration.
+        // If customer has taxId (VAT-registered): MUST have VAT tax scheme.
+        // If customer has no taxId (non-VAT): MUST NOT have tax scheme, may use optional schemeID.
+        if (!empty($data['taxId'])) {
+            // VAT-registered customer: set CompanyID and VAT tax scheme.
+            // Validation ensures taxScheme is VAT if provided; defaults to VAT if not provided.
+            $taxScheme = (new TaxScheme)->setId($data['taxScheme']['id'] ?? 'VAT');
+            $partyTaxScheme = (new PartyTaxScheme)
+                ->setTaxScheme($taxScheme)
+                ->setCompanyId($data['taxId']);
 
-            // Map the PartyTaxScheme for the customer.
-            if ($taxSchemeId !== 'VAT' || $taxId) {
-                $taxScheme = (new TaxScheme)->setId($taxSchemeId);
-                $partyTaxScheme = (new PartyTaxScheme)
-                    ->setTaxScheme($taxScheme);
-
-                if ($taxId) {
-                    $partyTaxScheme->setCompanyId($taxId);
-                }
-
-                $party->setPartyTaxScheme($partyTaxScheme);
-            }
+            $party->setPartyTaxScheme($partyTaxScheme);
         }
 
-        // Set party identification if available.
+        // Set party identification if available (for non-VAT customers or additional identification).
         if (isset($data['identificationId'])) {
             $party->setPartyIdentification($data['identificationId']);
 

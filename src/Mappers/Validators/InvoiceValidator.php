@@ -18,6 +18,26 @@ use InvalidArgumentException;
 class InvoiceValidator
 {
     /**
+     * @var SupplierValidator Validator for supplier data.
+     */
+    private SupplierValidator $supplierValidator;
+
+    /**
+     * @var CustomerValidator Validator for customer data.
+     */
+    private CustomerValidator $customerValidator;
+
+    /**
+     * InvoiceValidator constructor.
+     *
+     * Initializes the supplier and customer validators.
+     */
+    public function __construct()
+    {
+        $this->supplierValidator = new SupplierValidator();
+        $this->customerValidator = new CustomerValidator();
+    }
+    /**
      * Validate the required invoice data fields.
      *
      * This method checks that the necessary fields such as 'uuid', 'id', 'issueDate',
@@ -60,50 +80,14 @@ class InvoiceValidator
             }
         }
 
-        // Validate supplier data.
-        if (empty($data['supplier'])) {
-            throw new InvalidArgumentException('Supplier data is required.');
-        }
-
-        $supplierRequired = ['registrationName', 'taxId', 'address'];
-        foreach ($supplierRequired as $field) {
-            if (empty($data['supplier'][$field])) {
-                throw new InvalidArgumentException("The field 'Supplier {$field}' is required and cannot be empty.");
-            }
-        }
-
-        // Validate supplier address fields.
-        $supplierAddressRequired = ['street', 'buildingNumber', 'city', 'postalZone', 'country'];
-        foreach ($supplierAddressRequired as $field) {
-            if (empty($data['supplier']['address'][$field])) {
-                throw new InvalidArgumentException("The field 'Supplier Address {$field}' is required and cannot be empty.");
-            }
-        }
+        // Validate supplier data using SupplierValidator.
+        $this->supplierValidator->validate($data['supplier'] ?? []);
 
         // Determine invoice type: if not simplified, then customer data is required.
         $isSimplified = isset($data['invoiceType']['invoice']) && strtolower($data['invoiceType']['invoice']) === 'simplified';
 
-        if (! $isSimplified) {
-            // Validate customer data.
-            if (empty($data['customer'])) {
-                throw new InvalidArgumentException('Customer data is required for non-simplified invoices.');
-            }
-
-            $customerRequired = ['registrationName', 'taxId', 'address'];
-            foreach ($customerRequired as $field) {
-                if (empty($data['customer'][$field])) {
-                    throw new InvalidArgumentException("The field 'Customer {$field}' is required and cannot be empty.");
-                }
-            }
-
-            // Validate customer address fields.
-            $customerAddressRequired = ['street', 'buildingNumber', 'city', 'postalZone', 'country'];
-            foreach ($customerAddressRequired as $field) {
-                if (empty($data['customer']['address'][$field])) {
-                    throw new InvalidArgumentException("The field 'Customer Address {$field}' is required and cannot be empty.");
-                }
-            }
-        }
+        // Validate customer data using CustomerValidator.
+        $this->customerValidator->validate($data['customer'] ?? [], $isSimplified);
 
         // Validate paymentMeans if provided.
         if (isset($data['paymentMeans'])) {
