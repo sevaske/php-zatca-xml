@@ -47,19 +47,24 @@ class CustomerMapper
         // Map the LegalEntity for the customer.
         $legalEntity = (new LegalEntity)->setRegistrationName($data['registrationName'] ?? '');
 
-        // Map the Address for the customer.
-        $address = (new Address)
-            ->setStreetName($data['address']['street'] ?? '')
-            ->setBuildingNumber($data['address']['buildingNumber'] ?? '')
-            ->setCitySubdivisionName($data['address']['subdivision'] ?? '')
-            ->setCityName($data['address']['city'] ?? '')
-            ->setPostalZone($data['address']['postalZone'] ?? '')
-            ->setCountry($data['address']['country'] ?? 'SA');
 
         // Create and populate the Party object.
         $party = (new Party)
-            ->setLegalEntity($legalEntity)
-            ->setPostalAddress($address);
+            ->setLegalEntity($legalEntity);
+
+            
+        if (isset($data['address']) && !empty($data['address'])) {
+            // Map the Address for the customer.
+            $address = (new Address)
+                ->setStreetName($data['address']['street'] ?? '')
+                ->setBuildingNumber($data['address']['buildingNumber'] ?? '')
+                ->setCitySubdivisionName($data['address']['subdivision'] ?? '')
+                ->setCityName($data['address']['city'] ?? '')
+                ->setPostalZone($data['address']['postalZone'] ?? '')
+                ->setCountry($data['address']['country'] ?? 'SA');
+
+            $party->setPostalAddress($address);
+        }
 
         // ZATCA requirement: Customer tax scheme handling based on VAT registration.
         // If customer has taxId (VAT-registered): MUST have VAT tax scheme.
