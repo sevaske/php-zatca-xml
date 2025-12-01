@@ -56,7 +56,7 @@ class CustomerValidator extends PartyValidator
         }
 
         // Validate address if provided (required for standard invoices).
-        if (!$isSimplified || (isset($data['address']) && !empty($data['address']))) {
+        if (!$isSimplified || $hasVatRegistration || (isset($data['address']) && !empty($data['address']))) {
             $this->validateAddress($data, 'Customer');
         }
     }
@@ -93,6 +93,10 @@ class CustomerValidator extends PartyValidator
                 );
             }
         }
+
+
+        $this->validateAddress($data, 'Customer');
+
     }
 
     /**
@@ -126,5 +130,10 @@ class CustomerValidator extends PartyValidator
 
         // Validate identification fields if provided.
         $this->validateIdentification($data, 'Customer');
+
+        // Validate address if provided (required for standard invoices).
+        if (!$isSimplified || (isset($data['address']) && !empty($data['address']))) {
+            $this->validateAddress($data, 'Customer');
+        }
     }
 }
