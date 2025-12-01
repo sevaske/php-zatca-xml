@@ -30,7 +30,7 @@ If the original author returns and resumes activity, we are open to merging all 
 
 **API Integration:**  
 API-related functionality has been refactored and moved to a separate library for better modularity and maintainability:  
-🔗 [sevaske/zatca-api](https://github.com/sevaske/zatca-api)
+🔗 [sevaske/zatca-api:^1.0](https://github.com/sevaske/zatca-api/tree/v1)
 
 Original project: [https://github.com/Saleh7/php-zatca-xml](https://github.com/Saleh7/php-zatca-xml)
 
