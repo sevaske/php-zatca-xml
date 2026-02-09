@@ -77,7 +77,7 @@ $certificate = (new CertificateBuilder())->setOrganizationIdentifier('3123456789
     ->generate();
 
 $csr = $certificate->getCsr(); // .csr
-$pem = $certificate->getCsr(); // .pem
+$pem = $certificate->getPrivateKey(); // .pem
 
 file_put_contents('output/certificate.csr', $csr);
 file_put_contents('output/private.pem', $pem);
