@@ -1,141 +1,126 @@
-<p align="center">
-<img src="https://badgen.net/packagist/php/sevaske/php-zatca-xml" alt="php Vers ion">
-<a href="https://packagist.org/packages/sevaske/php-zatca-xml"><img alt="Packagist Stars" src="https://img.shields.io/packagist/stars/sevaske/php-zatca-xml"></a>
-<a href="https://packagist.org/packages/sevaske/php-zatca-xml"><img alt="Packagist Downloads" src="https://img.shields.io/packagist/dt/sevaske/php-zatca-xml"></a>
-<a href="https://packagist.org/packages/sevaske/php-zatca-xml"><img alt="Packagist Version" src="https://img.shields.io/packagist/v/sevaske/php-zatca-xml"></a>
-<a href="https://packagist.org/packages/sevaske/php-zatca-xml"><img alt="License" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
-</p>
+# ZATCA E-Invoice XML
 
-<p align="center">
-Please feel free to <a href="https://github.com/sevaske/php-zatca-xml/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen"><strong>contribute</strong></a> if you are missing features or tags
-<br />
-<a href="https://github.com/sevaske/php-zatca-xml/tree/main/examples">View Examples</a>
-·
-<a href="https://github.com/sevaske/php-zatca-xml/issues">Report a bug</a>
-</p>
+[![PHP Version](https://badgen.net/packagist/php/sevaske/php-zatca-xml)](https://packagist.org/packages/sevaske/php-zatca-xml)
+[![Packagist Stars](https://img.shields.io/packagist/stars/sevaske/php-zatca-xml)](https://packagist.org/packages/sevaske/php-zatca-xml)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/sevaske/php-zatca-xml)](https://packagist.org/packages/sevaske/php-zatca-xml)
+[![Packagist Version](https://img.shields.io/packagist/v/sevaske/php-zatca-xml)](https://packagist.org/packages/sevaske/php-zatca-xml)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://packagist.org/packages/sevaske/php-zatca-xml)
 
-### FORK!
+A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Saudi Arabia's electronic invoicing system (Fatoora).
 
-**Note:** The original author of the repository [Saleh7/php-zatca-xml](https://github.com/Saleh7/php-zatca-xml) has been inactive and unresponsive for several months.
-
-This repository is a community-maintained fork with fixes and updates to keep the library functional and improved.
-
-**API Integration:**  
-API-related functionality has been refactored and moved to a separate library for better modularity and maintainability:  
-🔗 [sevaske/zatca-api:^1.0](https://github.com/sevaske/zatca-api/tree/v1)
-
-Original project: [https://github.com/Saleh7/php-zatca-xml](https://github.com/Saleh7/php-zatca-xml)
-
-
-## 📖 Introduction  
-
-This is an unofficial PHP library for generating ZATCA Fatoora e-invoices (simplified invoice, simplified credit note, simplified debit note, standard invoice, standard credit note, standard debit note), certificates, and for interacting with the API.  
-
-
-## ✨ Features  
-
-- 🚀 **ZATCA-Compliant** – Easily generate valid e-invoices for ZATCA regulations  
-- 📜 **Invoice Creation** – Generate standard and simplified invoices in XML format  
-- 🔐 **Digital Signing** – Sign invoices securely to ensure compliance  
-- 🏷 **QR Code Generation** – Automatically generate QR codes for invoices  
-- 📡 **Direct Submission to ZATCA** – Send invoices directly to ZATCA’s servers  
-
-
-## 📌 Requirements  
-
-### ✅ PHP Version  
-- **PHP 8.1 or higher**
-
-
-## 🛠 Installation  
-
-```bash
-composer require sevaske/php-zatca-xml
-```
-
-## 🚀 Usage  
-
-This library simplifies the process of generating **ZATCA-compliant** e-invoices, handling **certificates**, signing invoices, and submitting them to **ZATCA’s API**. 
-
-You can find working examples for generating and signing invoices and notes here:
-
-🔗 [examples](https://github.com/sevaske/php-zatca-xml/tree/main/examples)
+> ⚠️ **Note:** This is an unofficial library, not maintained by ZATCA.
 
 ---
 
-### 📜 **1. Generating a Compliance Certificate**  
+## 🎯 What This Library Does
 
-First, generate a **certificate signing request (CSR)** and private key:  
+- ✅ Generate ZATCA-compliant XML invoices (Standard & Simplified)
+- ✅ Create credit notes and debit notes
+- ✅ Generate and manage certificates (CSR, private keys)
+- ✅ Sign invoices with cryptographic signatures
+- ✅ Generate QR codes for invoices
+- ✅ Works with API
+
+---
+
+## 📦 Installation
+
+```bash
+composer require sevaske/php-zatca-xml:^4.0
+```
+
+### Requirements
+- PHP 8.1 or higher
+- OpenSSL extension
+
+---
+
+## Integration Workflow
+
+```
+1. Generate CSR
+   ↓
+2. Request compliance certificate
+   ↓
+3. Generate invoice XML
+   ↓
+4. Sign invoice
+   ↓
+5. Submit to ZATCA (simulation)
+   ↓
+6. Generate production certificate
+```
+
+---
+
+## 🚀 Quick Start
+
+### Generate CSR and Private Key
 
 ```php
 use Saleh7\Zatca\CertificateBuilder;
-use Saleh7\Zatca\Exceptions\CertificateBuilderException;
+use Saleh7\Zatca\GeneratorInvoice;
+use Saleh7\Zatca\InvoiceSigner;
+use Saleh7\Zatca\Mappers\InvoiceMapper;
+use Saleh7\Zatca\Helpers\Certificate;
 
-try {
-    (new CertificateBuilder())
-        ->setOrganizationIdentifier('312345678901233') // The Organization Identifier must be 15 digits, starting andending with 3
-        // string $solutionName .. The solution provider name
-        // string $model .. The model of the unit the stamp is being generated for
-        // string $serialNumber .. # If you have multiple devices each should have a unique serial number
-        ->setSerialNumber('Saleh', '1n', 'SME00023')
-        ->setCommonName('My Organization') // The common name to be used in the certificate
-        ->setCountryName('SA') // The Country name must be Two chars only
-        ->setOrganizationName('My Company') // The name of your organization
-        ->setOrganizationalUnitName('IT Department') // A subunit in your organizatio
-        ->setAddress('Riyadh 1234 Street') // like Riyadh 1234 Street 
-        ->setInvoiceType(1100)// # Four digits, each digit acting as a bool. The order is as follows: Standard Invoice, Simplified, future use, future use 
-        ->setProduction(false)// true = Production |  false = Testing
-        ->setBusinessCategory('Technology') // Your business category like food, real estate, etc
-        ->generateAndSave('output/certificate.csr', 'output/private.pem');
-        
-    echo "Certificate and private key saved.\n";
-} catch (CertificateBuilderException $e) {
-    echo "Error: " . $e->getMessage() . "\n";
-    exit(1);
-}
+$certificate = (new CertificateBuilder())->setOrganizationIdentifier('312345678901233')
+    ->setSerialNumber('MySolution', 'Model1', 'DEVICE001')
+    ->setCommonName('My Company')
+    ->setCountryName('SA')
+    ->setOrganizationName('My Company Ltd')
+    ->setOrganizationalUnitName('IT Department')
+    ->setAddress('Riyadh 1234 Street')
+    ->setInvoiceType(1100)
+    ->setProduction(false)
+    ->setBusinessCategory('Technology')
+    ->generate();
+
+$csr = $certificate->getCsr(); // .csr
+$pem = $certificate->getCsr(); // .pem
+
+file_put_contents('output/certificate.csr', $csr);
+file_put_contents('output/private.pem', $pem);
 ```
 
-### 🔐 **2. Requesting a Compliance Certificate from ZATCA**  
-
-Once the CSR is generated, you need to request a **compliance certificate** from **ZATCA's API**.  
+### Compliance certificate & set authentication
 
 ```php
 use GuzzleHttp\Client;
-use Sevaske\ZatcaApi\Api;
-use Sevaske\ZatcaApi\Exceptions\ZatcaException;
+use GuzzleHttp\Psr7\HttpFactory;
+use Sevaske\ZatcaApi\ZatcaAuth;
+use Sevaske\ZatcaApi\ZatcaClient;
 
-$api = new Api('sandbox', new Client);
-$certificatePath = __DIR__.'/output/certificate.csr';
-$csr = file_get_contents($certificatePath);
+$httpClient = new Client();
+$factory = new HttpFactory();
 
-try {
-    $response = $api->complianceCertificate($csr, '123123');
-    $credentials = [
-        'requestId' => $response->requestId(),
-        'certificate' => $response->certificate(),
-        'secret' => $response->secret(),
-    ];
+// Initialize ZatcaClient with sandbox environment
+$client = new ZatcaClient(
+    $httpClient,
+    $factory, // RequestFactoryInterface
+    $factory, // StreamFactoryInterface
+    'sandbox' // environment: sandbox | simulation | production
+);
+$response = $client->complianceCertificate($csr, '112233');
+$credentials = [
+    'requestId' => $response->requestId(),
+    'certificate' => $response->certificate(),
+    'secret' => $response->secret(),
+];
 
-    print_r($credentials);
-
-    // sava file output/ZATCA_certificate_data.json
-    $outputFile = __DIR__.'/output/ZATCA_certificate_data.json';
-    file_put_contents($outputFile, json_encode($credentials, JSON_PRETTY_PRINT));
-
-    echo "\nCertificate data saved to {$outputFile}\n";
-} catch (ZatcaException $e) {
-    echo 'API Error: '.$e->getMessage()."\n";
-    print_r($e->context());
-} catch (\Exception $e) {
-    echo 'Error: '.$e->getMessage();
+if (! $response->success()) {
+    // failed
 }
+
+$outputFile = __DIR__.'/output/simulation.json';
+file_put_contents($outputFile, json_encode($credentials, JSON_PRETTY_PRINT));
+
+// to make authorized requests
+$authToken = new ZatcaAuth($response->certificate(), $response->secret());
+$client->setAuthToken($authToken);
 ```
 
-### 🧾 **3. Generating and signing an Invoice XML**  
-
-Now that we have the compliance certificate, we can generate a **ZATCA-compliant e-invoice in XML format**.
-
-Example of the simplified invoice:
+### Basic XML Generation
 
 ```php
 use Saleh7\Zatca\GeneratorInvoice;
@@ -318,35 +303,187 @@ $invoice = $invoiceMapper->mapToInvoice($invoiceData);
 // Generate the invoice XML
 $generatorInvoice = GeneratorInvoice::invoice($invoice);
 
+$simulation = json_decode(file_get_contents('output/simulation.json'), true);
+$privateKey = file_get_contents('output/private.pem');
+
 // sign the invoice XML with the certificate
 $certificate = (new Certificate(
-    'MIID3jCCA4SgAwIBAgITEQAAOAPF90Ajs/xcXwABAAA4AzAKBggqhkjOPQQDAjBiMRUwEwYKCZImiZPyLGQBGRYFbG9jYWwxEzARBgoJkiaJk/IsZAEZFgNnb3YxFzAVBgoJkiaJk/IsZAEZFgdleHRnYXp0MRswGQYDVQQDExJQUlpFSU5WT0lDRVNDQTQtQ0EwHhcNMjQwMTExMDkxOTMwWhcNMjkwMTA5MDkxOTMwWjB1MQswCQYDVQQGEwJTQTEmMCQGA1UEChMdTWF4aW11bSBTcGVlZCBUZWNoIFN1cHBseSBMVEQxFjAUBgNVBAsTDVJpeWFkaCBCcmFuY2gxJjAkBgNVBAMTHVRTVC04ODY0MzExNDUtMzk5OTk5OTk5OTAwMDAzMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeKOCAgcwggIDMIGtBgNVHREEgaUwgaKkgZ8wgZwxOzA5BgNVBAQMMjEtVFNUfDItVFNUfDMtZWQyMmYxZDgtZTZhMi0xMTE4LTliNTgtZDlhOGYxMWU0NDVmMR8wHQYKCZImiZPyLGQBAQwPMzk5OTk5OTk5OTAwMDAzMQ0wCwYDVQQMDAQxMTAwMREwDwYDVQQaDAhSUlJEMjkyOTEaMBgGA1UEDwwRU3VwcGx5IGFjdGl2aXRpZXMwHQYDVR0OBBYEFEX+YvmmtnYoDf9BGbKo7ocTKYK1MB8GA1UdIwQYMBaAFJvKqqLtmqwskIFzVvpP2PxT+9NnMHsGCCsGAQUFBwEBBG8wbTBrBggrBgEFBQcwAoZfaHR0cDovL2FpYTQuemF0Y2EuZ292LnNhL0NlcnRFbnJvbGwvUFJaRUludm9pY2VTQ0E0LmV4dGdhenQuZ292LmxvY2FsX1BSWkVJTlZPSUNFU0NBNC1DQSgxKS5jcnQwDgYDVR0PAQH/BAQDAgeAMDwGCSsGAQQBgjcVBwQvMC0GJSsGAQQBgjcVCIGGqB2E0PsShu2dJIfO+xnTwFVmh/qlZYXZhD4CAWQCARIwHQYDVR0lBBYwFAYIKwYBBQUHAwMGCCsGAQUFBwMCMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwMwCgYIKwYBBQUHAwIwCgYIKoZIzj0EAwIDSAAwRQIhALE/ichmnWXCUKUbca3yci8oqwaLvFdHVjQrveI9uqAbAiA9hC4M8jgMBADPSzmd2uiPJA6gKR3LE03U75eqbC/rXA==',
-    'MHQCAQEEIL14JV+5nr/sE8Sppaf2IySovrhVBtt8+yz+g4NRKyz8oAcGBSuBBAAKoUQDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeA==',
-    'secret'
+    $simulation['certificate'],
+    $privateKey,
+    $simulation['secret'],
 ));
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
-$outputXML = GeneratorInvoice::invoice($invoice)->saveXMLFile('Simplified_Invoice.xml');
-echo "Simplified Invoice Generated Successfully\n";
-
-$signedInvoice->saveXMLFile('Simplified_Invoice_Signed.xml');
-echo "Simplified Invoice Signed Successfully\n";
+$signedInvoice->getXML();
+$signedInvoice->getHash();
+$signedInvoice->getQRCode();
 ```
 
-Other examples you can find in the ./examples folder.
+### Submit invoice
 
-### 📤 **5. Submitting the Signed Invoice to ZATCA**  
+```php
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use Saleh7\Zatca\InvoiceSigner;
+use Sevaske\ZatcaApi\ZatcaAuth;
+use Sevaske\ZatcaApi\ZatcaClient;
+use Sevaske\ZatcaApi\Exceptions\ZatcaException;
 
-Once the invoice is **digitally signed**, it can be submitted to **ZATCA’s API** for compliance validation and clearance.
+/**
+* @var Sevaske\ZatcaApi\ZatcaClient $client
+*/
 
+try {
+    // load simulation credential
+    $simulationPath = __DIR__.'/output/simulation.json';
+    $simulation = json_decode(file_get_contents($simulationPath), true);
 
-## Contributing
+    $client->setAuthToken(new ZatcaAuth(
+        certificate: $simulation['certificate'],
+        secret: $simulation['secret'])
+    );
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change.
+    /**
+     * @var InvoiceSigner $signedInvoice
+     */
+    $response = $client->reportingInvoice(
+        invoice: $signedInvoice->getInvoice(),
+        invoiceHash: $signedInvoice->getHash(),
+        uuid: 'generated uuid',
+    );
 
-Please make sure to update tests as appropriate.
+    if (! $response->success()) {
+        throw new ZatcaException('Failed request.', $response->errors());
+    }
+    
+    $response->errors();
+    $response->warnings();
+    $response->toArray();
+} catch (ZatcaException|Exception $e) {
+    // handle
+}
+```
+
+#### Submission Types
+
+**Simplified Invoice (B2C) - Reporting:**
+```php
+$response = $client->reportingInvoice($xml, $hash, $uuid);
+```
+
+**Standard Invoice (B2B) - Clearance:**
+```php
+$response = $client->clearanceInvoice($xml, $hash, $uuid);
+```
+
+#### Simulation Testing
+
+Before production, submit 6 test invoices:
+
+```php
+/**
+* @var Sevaske\ZatcaApi\ZatcaClient $client
+*/
+
+// Switch to simulation environment
+$client = $client->withEnvironment('simulation');
+
+// Submit 3 simplified invoices
+$client->reportingInvoice($simplifiedInvoiceXML, $hash, $uuid);
+$client->reportingInvoice($simplifiedDebitNoteXML, $hash, $uuid);
+$client->reportingInvoice($simplifiedCreditNoteXML, $hash, $uuid);
+
+// Submit 3 standard invoices
+$client->clearanceInvoice($standardInvoiceXML, $hash, $uuid);
+$client->clearanceInvoice($standardDebitNoteXML, $hash, $uuid);
+$client->clearanceInvoice($standardCreditNoteXML, $hash, $uuid);
+```
+
+### Production Certificate
+
+After simulation you are able to switch to the production environment:
+
+```php
+/**
+* @var Sevaske\ZatcaApi\ZatcaClient $client
+*/
+// load simulation credential
+$simulationPath = __DIR__.'/output/simulation.json';
+$simulation = json_decode(file_get_contents($simulationPath), true);
+
+$response = $client->productionCertificate($simulation['requestId']);
+$credentials = [
+    'requestId' => $response->requestId(),
+    'certificate' => $response->certificate(),
+    'secret' => $response->secret(),
+];
+
+if (! $response->success()) {
+    // failed
+}
+
+$outputFile = __DIR__.'/output/production.json';
+file_put_contents($outputFile, json_encode($credentials, JSON_PRETTY_PRINT));
+
+// to make authorized PRODUCTION requests
+$authToken = new ZatcaAuth($response->certificate(), $response->secret());
+$client->setAuthToken($authToken);
+
+// you are able to submit production invoices now
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 🔗 Related Projects
+
+- **[sevaske/zatca-api](https://github.com/sevaske/zatca-api)** - ZATCA API Client
+
+---
+
+## 🙏 Acknowledgments
+
+This is a community-maintained fork of [Saleh7/php-zatca-xml](https://github.com/Saleh7/php-zatca-xml).
+
+All improvements and bug fixes are collected here to support the community while the original author is inactive.
+
+---
+
+## ⚠️ Disclaimer
+
+This library is not officially maintained by ZATCA. Use at your own risk and always test thoroughly in sandbox/simulation environments before production use.
+
+---
+
+## 📞 Support
+
+- 🐛 [Report Issues](https://github.com/sevaske/php-zatca-xml/issues)
+- 📖 [Examples](https://github.com/sevaske/php-zatca-xml/tree/main/examples)
+- 🔌 [API Integration Guide](https://github.com/sevaske/zatca-api#readme)
+
+---
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+---
+
+**Happy invoicing! 🧾✨**
