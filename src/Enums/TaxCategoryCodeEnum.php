@@ -11,7 +11,7 @@ namespace Saleh7\Zatca\Enums;
  *
  * These codes define how VAT is applied to a supply.
  */
-enum TaxCategoryCode: string
+enum TaxCategoryCodeEnum: string
 {
     /**
      * Standard rated VAT.
