@@ -2,7 +2,8 @@
 
 namespace Saleh7\Zatca\Exceptions;
 
-use Exception;
+use Sevaske\Support\Exceptions\ContextableException;
+use Sevaske\ZatcaApi\Interfaces\ZatcaExceptionInterface;
 use Throwable;
 
 /**
@@ -10,9 +11,9 @@ use Throwable;
  *
  * Base exception class for ZATCA-related errors.
  */
-class ZatcaException extends \Sevaske\ZatcaApi\Exceptions\ZatcaException
+class ZatcaException extends ContextableException implements ZatcaExceptionInterface
 {
-    protected string $defaultMessage = 'An error occurred';
+    protected string $defaultMessage = 'An error occurred.';
 
     public function __construct(?string $message = null, array $context = [], int $code = 0, ?Throwable $previous = null)
     {

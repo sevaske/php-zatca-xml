@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests;
+namespace Saleh7\Zatca\Tests\Mappers;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Saleh7\Zatca\Mappers\Validators\SupplierValidator;
-use InvalidArgumentException;
 
 class SupplierValidatorTest extends TestCase
 {
@@ -12,10 +12,10 @@ class SupplierValidatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->validator = new SupplierValidator();
+        $this->validator = new SupplierValidator;
     }
 
-    public function testValidSupplierWithVatScheme(): void
+    public function test_valid_supplier_with_vat_scheme(): void
     {
         $data = [
             'registrationName' => 'My Company',
@@ -34,7 +34,7 @@ class SupplierValidatorTest extends TestCase
         $this->assertTrue(true); // If no exception, validation passed
     }
 
-    public function testSupplierWithoutTaxIdFails(): void
+    public function test_supplier_without_tax_id_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Supplier VAT Number (taxId)');
@@ -54,7 +54,7 @@ class SupplierValidatorTest extends TestCase
         $this->validator->validate($data);
     }
 
-    public function testSupplierWithoutTaxSchemeIsAllowed(): void
+    public function test_supplier_without_tax_scheme_is_allowed(): void
     {
         // Missing taxScheme is allowed - mapper will default to VAT
         $data = [
@@ -73,7 +73,7 @@ class SupplierValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testSupplierWithNonVatTaxSchemeFails(): void
+    public function test_supplier_with_non_vat_tax_scheme_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("tax scheme must be 'VAT'");
@@ -94,7 +94,7 @@ class SupplierValidatorTest extends TestCase
         $this->validator->validate($data);
     }
 
-    public function testSupplierWithoutRegistrationNameFails(): void
+    public function test_supplier_without_registration_name_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Registration Name');
@@ -114,7 +114,7 @@ class SupplierValidatorTest extends TestCase
         $this->validator->validate($data);
     }
 
-    public function testSupplierWithIncompleteAddressFails(): void
+    public function test_supplier_with_incomplete_address_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Address');
@@ -135,7 +135,7 @@ class SupplierValidatorTest extends TestCase
         $this->validator->validate($data);
     }
 
-    public function testEmptySupplierDataFails(): void
+    public function test_empty_supplier_data_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Supplier data is required');

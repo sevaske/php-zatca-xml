@@ -55,7 +55,7 @@ abstract class PartyValidator
      */
     protected function validateIdentification(array $data, string $partyType): void
     {
-        if (isset($data['identificationId']) && !empty($data['identificationId'])) {
+        if (isset($data['identificationId']) && ! empty($data['identificationId'])) {
             if (empty($data['identificationType'])) {
                 throw new InvalidArgumentException(
                     "{$partyType} identificationType is required when identificationId is provided."

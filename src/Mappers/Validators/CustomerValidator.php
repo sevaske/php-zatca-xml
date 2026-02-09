@@ -37,15 +37,16 @@ class CustomerValidator extends PartyValidator
         // For simplified invoices, customer data is optional.
         // For standard invoices, customer data is required.
         if (empty($data)) {
-            if (!$isSimplified) {
+            if (! $isSimplified) {
                 throw new InvalidArgumentException('Customer data is required for standard (B2B) invoices.');
             }
+
             // If simplified and no customer data, validation passes.
             return;
         }
 
         // Check if customer is VAT-registered (has taxId).
-        $hasVatRegistration = !empty($data['taxId']);
+        $hasVatRegistration = ! empty($data['taxId']);
 
         if ($hasVatRegistration) {
             // VAT-registered buyer: MUST have VAT tax scheme.
@@ -56,7 +57,7 @@ class CustomerValidator extends PartyValidator
         }
 
         // Validate address if provided (required for standard invoices).
-        if (!$isSimplified || $hasVatRegistration || (isset($data['address']) && !empty($data['address']))) {
+        if (! $isSimplified || $hasVatRegistration || (isset($data['address']) && ! empty($data['address']))) {
             $this->validateAddress($data, 'Customer');
         }
     }
@@ -86,14 +87,13 @@ class CustomerValidator extends PartyValidator
 
         // ZATCA requirement: VAT-registered buyers MUST have VAT tax scheme.
         // If taxScheme is provided, it must be 'VAT'. If not provided, mapper will default to 'VAT'.
-        if (isset($data['taxScheme']['id']) && !empty($data['taxScheme']['id'])) {
+        if (isset($data['taxScheme']['id']) && ! empty($data['taxScheme']['id'])) {
             if (strtoupper($data['taxScheme']['id']) !== 'VAT') {
                 throw new InvalidArgumentException(
                     "VAT-registered customer tax scheme must be 'VAT'. Found: '{$data['taxScheme']['id']}'."
                 );
             }
         }
-
 
         $this->validateAddress($data, 'Customer');
 
@@ -115,14 +115,14 @@ class CustomerValidator extends PartyValidator
     private function validateNonVatCustomer(array $data, bool $isSimplified): void
     {
         // ZATCA requirement: Non-VAT buyers MUST NOT have tax scheme.
-        if (isset($data['taxScheme']) && !empty($data['taxScheme']['id'])) {
+        if (isset($data['taxScheme']) && ! empty($data['taxScheme']['id'])) {
             throw new InvalidArgumentException(
                 "Non-VAT registered customer must not have a tax scheme. Remove 'taxScheme' or provide a valid 'taxId'."
             );
         }
 
         // For standard invoices, registrationName is required even for non-VAT customers.
-        if (!$isSimplified && empty($data['registrationName'])) {
+        if (! $isSimplified && empty($data['registrationName'])) {
             throw new InvalidArgumentException(
                 'Customer Registration Name is required for standard (B2B) invoices.'
             );
@@ -132,7 +132,7 @@ class CustomerValidator extends PartyValidator
         $this->validateIdentification($data, 'Customer');
 
         // Validate address if provided (required for standard invoices).
-        if (!$isSimplified || (isset($data['address']) && !empty($data['address']))) {
+        if (! $isSimplified || (isset($data['address']) && ! empty($data['address']))) {
             $this->validateAddress($data, 'Customer');
         }
     }
