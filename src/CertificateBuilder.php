@@ -195,10 +195,11 @@ EOL;
     /**
      * Generate CSR and private key.
      */
-    public function generate(): void
+    public function generate(): self
     {
         $this->validateParameters();
         $config = $this->createOpenSslConfig();
+
         try {
             $this->generateKeys($config);
         } finally {
@@ -206,6 +207,8 @@ EOL;
                 unlink($config['config']);
             }
         }
+
+        return $this;
     }
 
     /**
