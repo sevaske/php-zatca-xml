@@ -6,7 +6,7 @@
 [![Packagist Version](https://img.shields.io/packagist/v/sevaske/php-zatca-xml)](https://packagist.org/packages/sevaske/php-zatca-xml)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://packagist.org/packages/sevaske/php-zatca-xml)
 
-A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Saudi Arabia's electronic invoicing system (Fatoora).
+A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Saudi Arabia's electronic invoicing system (Fatoora). Provides full integration coverage for ZATCA Phase 2.
 
 > ⚠️ **Note:** This is an unofficial library, not maintained by ZATCA.
 
@@ -19,7 +19,7 @@ A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Sa
 - ✅ Generate and manage certificates (CSR, private keys)
 - ✅ Sign invoices with cryptographic signatures
 - ✅ Generate QR codes for invoices
-- ✅ Works with API
+- ✅ Integrates with ZATCA API via `sevaske/zatca-api`
 
 ---
 
@@ -59,9 +59,6 @@ composer require sevaske/php-zatca-xml:^4.0
 
 ```php
 use Saleh7\Zatca\CertificateBuilder;
-use Saleh7\Zatca\GeneratorInvoice;
-use Saleh7\Zatca\InvoiceSigner;
-use Saleh7\Zatca\Mappers\InvoiceMapper;
 use Saleh7\Zatca\Helpers\Certificate;
 
 $certificate = (new CertificateBuilder())->setOrganizationIdentifier('312345678901233')
@@ -138,7 +135,7 @@ $invoiceData = [
     ],
     'currencyCode' => 'SAR',
     'taxCurrencyCode' => 'SAR',
-    'note' => 'Tax ID is 333333333333333 because a customer didnt provide it.',
+    'note' => "Tax ID is 333333333333333 because a customer didn't provide it.",
     'languageID' => 'en',
     'invoiceType' => [
         'invoice' => 'simplified',
@@ -307,11 +304,11 @@ $simulation = json_decode(file_get_contents('output/simulation.json'), true);
 $privateKey = file_get_contents('output/private.pem');
 
 // sign the invoice XML with the certificate
-$certificate = (new Certificate(
+$certificate = new Certificate(
     $simulation['certificate'],
     $privateKey,
     $simulation['secret'],
-));
+);
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
 $signedInvoice->getXML();
@@ -340,8 +337,8 @@ try {
 
     $client->setAuthToken(new ZatcaAuth(
         certificate: $simulation['certificate'],
-        secret: $simulation['secret'])
-    );
+        secret: $simulation['secret'],
+    ));
 
     /**
      * @var InvoiceSigner $signedInvoice
@@ -446,12 +443,6 @@ Contributions are welcome! Please:
 
 ---
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
 ## 🔗 Related Projects
 
 - **[sevaske/zatca-api](https://github.com/sevaske/zatca-api)** - ZATCA API Client
@@ -477,12 +468,6 @@ This library is not officially maintained by ZATCA. Use at your own risk and alw
 - 🐛 [Report Issues](https://github.com/sevaske/php-zatca-xml/issues)
 - 📖 [Examples](https://github.com/sevaske/php-zatca-xml/tree/main/examples)
 - 🔌 [API Integration Guide](https://github.com/sevaske/zatca-api#readme)
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ---
 
