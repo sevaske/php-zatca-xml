@@ -38,7 +38,7 @@
         "ext-openssl": "*",
         "ext-hash": "*",
         "sabre/xml": "^4.0",
-        "psr/http-message": "^2.0",
+        "psr/http-message": "^1.0 || ^2.0",
         "psr/http-client": "^1.0",
         "phpseclib/phpseclib": "^3.0",
         "sevaske/zatca-api": "^2.0",
