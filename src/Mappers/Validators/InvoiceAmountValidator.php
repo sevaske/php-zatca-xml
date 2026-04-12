@@ -21,7 +21,7 @@ class InvoiceAmountValidator
 
     public function __construct(BigNumber|int|float|string $tolerance = 0.01)
     {
-        $this->tolerance = BigDecimal::of($tolerance);
+        $this->tolerance = BigDecimal::of((string) $tolerance);
     }
 
     /**
@@ -50,18 +50,18 @@ class InvoiceAmountValidator
                 throw new InvalidArgumentException("Legal Monetary Total field '{$field}' must be a numeric value.");
             }
 
-            if (BigDecimal::of($lmt[$field])->isNegative()) {
+            if (BigDecimal::of((string) $lmt[$field])->isNegative()) {
                 throw new InvalidArgumentException("Legal Monetary Total field '{$field}' cannot be negative.");
             }
         }
 
         $taxTotalAmount = isset($data['taxTotal']['taxAmount']) && is_numeric($data['taxTotal']['taxAmount'])
-            ? BigDecimal::of($data['taxTotal']['taxAmount'])
+            ? BigDecimal::of((string) $data['taxTotal']['taxAmount'])
             : BigDecimal::zero();
 
-        $taxExclusiveAmount = BigDecimal::of($lmt['taxExclusiveAmount']);
+        $taxExclusiveAmount = BigDecimal::of((string) $lmt['taxExclusiveAmount']);
         $expectedTaxInclusive = $taxExclusiveAmount->plus($taxTotalAmount);
-        $actualTaxInclusive = BigDecimal::of($lmt['taxInclusiveAmount']);
+        $actualTaxInclusive = BigDecimal::of((string) $lmt['taxInclusiveAmount']);
 
         $this->assertMoneyEquals(
             $expectedTaxInclusive,
@@ -87,14 +87,14 @@ class InvoiceAmountValidator
                 throw new InvalidArgumentException("Invoice Line [{$index}] Price amount must be a numeric value.");
             }
 
-            $priceAmount = BigDecimal::of($line['price']['amount']);
+            $priceAmount = BigDecimal::of((string) $line['price']['amount']);
             if ($priceAmount->isLessThan(BigDecimal::zero())) {
                 throw new InvalidArgumentException("Invoice Line [{$index}] Price amount cannot be negative.");
             }
 
             // Expected = price * quantity
             $expectedLineExtension = $priceAmount->multipliedBy($line['quantity']);
-            $providedLineExtension = BigDecimal::of($line['lineExtensionAmount']);
+            $providedLineExtension = BigDecimal::of((string) $line['lineExtensionAmount']);
 
             $this->assertMoneyEquals(
                 $expectedLineExtension,
@@ -119,7 +119,7 @@ class InvoiceAmountValidator
                 throw new InvalidArgumentException("Invoice Line [{$index}] TaxTotal taxAmount must be a numeric value.");
             }
 
-            $taxLineAmount = BigDecimal::of($line['taxTotal']['taxAmount']);
+            $taxLineAmount = BigDecimal::of((string) $line['taxTotal']['taxAmount']);
             if ($taxLineAmount->isLessThan(BigDecimal::zero())) {
                 throw new InvalidArgumentException("Invoice Line [{$index}] TaxTotal taxAmount cannot be negative.");
             }
@@ -129,7 +129,7 @@ class InvoiceAmountValidator
                 throw new InvalidArgumentException("Invoice Line [{$index}] TaxTotal roundingAmount must be a numeric value.");
             }
 
-            $roundingAmount = BigDecimal::of($line['taxTotal']['roundingAmount']);
+            $roundingAmount = BigDecimal::of((string) $line['taxTotal']['roundingAmount']);
             $expectedRounding = $providedLineExtension->plus($taxLineAmount);
 
             $this->assertMoneyEquals(
@@ -149,7 +149,7 @@ class InvoiceAmountValidator
             throw new InvalidArgumentException("Invoice Line [{$index}] field '{$field}' must be a numeric value.");
         }
 
-        if (BigDecimal::of($line[$field])->isLessThan(BigDecimal::zero())) {
+        if (BigDecimal::of((string) $line[$field])->isLessThan(BigDecimal::zero())) {
             throw new InvalidArgumentException("Invoice Line [{$index}] field '{$field}' cannot be negative.");
         }
     }

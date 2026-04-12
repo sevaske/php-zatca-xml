@@ -34,9 +34,10 @@ class InvoiceValidator
      */
     public function __construct()
     {
-        $this->supplierValidator = new SupplierValidator();
-        $this->customerValidator = new CustomerValidator();
+        $this->supplierValidator = new SupplierValidator;
+        $this->customerValidator = new CustomerValidator;
     }
+
     /**
      * Validate the required invoice data fields.
      *

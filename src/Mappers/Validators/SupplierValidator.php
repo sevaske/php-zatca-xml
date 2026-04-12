@@ -50,7 +50,7 @@ class SupplierValidator extends PartyValidator
         // Validate that the supplier has a VAT tax scheme.
         // ZATCA requirement: Seller is always a taxable person with VAT registration.
         // If taxScheme is provided, it must be 'VAT'. If not provided, mapper will default to 'VAT'.
-        if (isset($data['taxScheme']['id']) && !empty($data['taxScheme']['id'])) {
+        if (isset($data['taxScheme']['id']) && ! empty($data['taxScheme']['id'])) {
             if (strtoupper($data['taxScheme']['id']) !== 'VAT') {
                 throw new InvalidArgumentException("Supplier tax scheme must be 'VAT'. Found: '{$data['taxScheme']['id']}'.");
             }

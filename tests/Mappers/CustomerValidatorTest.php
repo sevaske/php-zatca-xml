@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests;
+namespace Saleh7\Zatca\Tests\Mappers;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Saleh7\Zatca\Mappers\Validators\CustomerValidator;
-use InvalidArgumentException;
 
 class CustomerValidatorTest extends TestCase
 {
@@ -12,12 +12,12 @@ class CustomerValidatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->validator = new CustomerValidator();
+        $this->validator = new CustomerValidator;
     }
 
     // Standard (B2B) Invoice Tests
 
-    public function testVatRegisteredCustomerForStandardInvoice(): void
+    public function test_vat_registered_customer_for_standard_invoice(): void
     {
         $data = [
             'registrationName' => 'Customer Ltd',
@@ -36,7 +36,7 @@ class CustomerValidatorTest extends TestCase
         $this->assertTrue(true); // If no exception, validation passed
     }
 
-    public function testVatRegisteredCustomerWithoutTaxSchemeIsAllowed(): void
+    public function test_vat_registered_customer_without_tax_scheme_is_allowed(): void
     {
         // Missing taxScheme is allowed - mapper will default to VAT
         $data = [
@@ -55,7 +55,7 @@ class CustomerValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testNonVatCustomerWithSchemeIdForStandardInvoice(): void
+    public function test_non_vat_customer_with_scheme_id_for_standard_invoice(): void
     {
         $data = [
             'registrationName' => 'Non-VAT Customer',
@@ -74,7 +74,7 @@ class CustomerValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testNonVatCustomerWithTaxSchemeFails(): void
+    public function test_non_vat_customer_with_tax_scheme_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must not have a tax scheme');
@@ -94,7 +94,7 @@ class CustomerValidatorTest extends TestCase
         $this->validator->validate($data, false);
     }
 
-    public function testStandardInvoiceWithoutCustomerDataFails(): void
+    public function test_standard_invoice_without_customer_data_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Customer data is required for standard');
@@ -102,7 +102,7 @@ class CustomerValidatorTest extends TestCase
         $this->validator->validate([], false);
     }
 
-    public function testNonVatCustomerWithoutRegistrationNameForStandardFails(): void
+    public function test_non_vat_customer_without_registration_name_for_standard_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Registration Name is required');
@@ -124,13 +124,13 @@ class CustomerValidatorTest extends TestCase
 
     // Simplified (B2C) Invoice Tests
 
-    public function testSimplifiedInvoiceWithNoCustomerData(): void
+    public function test_simplified_invoice_with_no_customer_data(): void
     {
         $this->validator->validate([], true);
         $this->assertTrue(true);
     }
 
-    public function testVatRegisteredCustomerForSimplifiedInvoice(): void
+    public function test_vat_registered_customer_for_simplified_invoice(): void
     {
         $data = [
             'registrationName' => 'VAT Customer',
@@ -149,7 +149,7 @@ class CustomerValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testNonVatCustomerForSimplifiedInvoice(): void
+    public function test_non_vat_customer_for_simplified_invoice(): void
     {
         $data = [
             'identificationId' => '1010010000',
@@ -167,7 +167,7 @@ class CustomerValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testNonVatCustomerWithIdentificationButNoTypeFails(): void
+    public function test_non_vat_customer_with_identification_but_no_type_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Customer identificationType is required');
@@ -187,7 +187,7 @@ class CustomerValidatorTest extends TestCase
         $this->validator->validate($data, false);
     }
 
-    public function testCustomerWithIncompleteAddressFails(): void
+    public function test_customer_with_incomplete_address_fails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Address');
