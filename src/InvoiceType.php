@@ -155,8 +155,7 @@ class InvoiceType implements XmlSerializable
                 default => throw new InvalidArgumentException('Invalid invoice type provided.'),
             },
             'simplified' => match ($this->invoiceType) {
-                'invoice', 'debit', 'credit' => InvoiceTypeCode::SIMPLIFIED_INVOICE,
-                'prepayment' => InvoiceTypeCode::STANDARD_INVOICE,
+                'invoice', 'debit', 'credit', 'prepayment' => InvoiceTypeCode::SIMPLIFIED_INVOICE,
                 default => throw new InvalidArgumentException('Invalid invoice type provided.'),
             },
             default => throw new InvalidArgumentException('Invalid invoice category provided.'),
