@@ -2,9 +2,11 @@
 
 namespace Saleh7\Zatca\Mappers;
 
-use Saleh7\Zatca\InvoiceLine;
-use Saleh7\Zatca\TaxTotal;
 use Saleh7\Zatca\AllowanceCharge;
+use Saleh7\Zatca\InvoiceLine;
+use Saleh7\Zatca\TaxCategory;
+use Saleh7\Zatca\TaxScheme;
+use Saleh7\Zatca\TaxTotal;
 
 /**
  * Class InvoiceLineMapper
@@ -102,14 +104,14 @@ class InvoiceLineMapper
     /**
      * Map AllowanceCharge data to an array of AllowanceCharge objects.
      *
-     * @param array $data The invoice data containing allowance charges.
+     * @param  array  $data  The invoice data containing allowance charges.
      * @return AllowanceCharge[] Array of mapped AllowanceCharge objects.
      */
     private function mapAllowanceCharge(array $data): array
     {
         $allowanceCharges = [];
         // Check if allowanceCharges is an array.
-        if (!isset($data['allowanceCharges']) || !is_array($data['allowanceCharges'])) {
+        if (! isset($data['allowanceCharges']) || ! is_array($data['allowanceCharges'])) {
             return $allowanceCharges;
         }
         // Iterate over each allowance charge in the data.
@@ -119,10 +121,10 @@ class InvoiceLineMapper
             // Check if taxCategories is an array and iterate over it.
             if (isset($allowanceCharge['taxCategories']) && is_array($allowanceCharge['taxCategories'])) {
                 foreach ($allowanceCharge['taxCategories'] as $taxCatData) {
-                    $taxCategory = (new \Saleh7\Zatca\TaxCategory())
-                        ->setPercent($taxCatData['percent'] ?? 15)
+                    $taxCategory = (new TaxCategory)
+                        ->setPercent($taxCatData['percent'])
                         ->setTaxScheme(
-                            (new \Saleh7\Zatca\TaxScheme())
+                            (new TaxScheme)
                                 ->setId($taxCatData['taxScheme']['id'] ?? 'VAT')
                         );
 
@@ -136,7 +138,7 @@ class InvoiceLineMapper
             }
 
             // Create the AllowanceCharge object with its tax categories.
-            $allowanceCharges[] = (new \Saleh7\Zatca\AllowanceCharge())
+            $allowanceCharges[] = (new AllowanceCharge)
                 ->setChargeIndicator($allowanceCharge['isCharge'] ?? false)
                 ->setAllowanceChargeReason($allowanceCharge['reason'] ?? 'discount')
                 ->setAmount($allowanceCharge['amount'] ?? 0.00)
