@@ -246,7 +246,8 @@ class InvoiceMapper
         $billingReferences = [];
         foreach ($data as $billingData) {
             $billingReferences[] = (new BillingReference)
-                ->setId($billingData['id'] ?? '');
+                ->setId($billingData['id'] ?? '')
+                ->setUUID($billingData['uuid'] ?? null);
         }
 
         return $billingReferences;
