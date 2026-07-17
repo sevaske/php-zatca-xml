@@ -109,7 +109,7 @@ class InvoiceValidator
                     $subRequired = ['taxableAmount', 'taxCategory'];
 
                     foreach ($subRequired as $field) {
-                        if (! isset($subTotal[$field]) || $subTotal[$field] === '' || $subTotal[$field] < 0) {
+                        if (! isset($subTotal[$field]) || $subTotal[$field] === '') {
                             throw new InvalidArgumentException("The field 'Tax Total subTotals[{$index}] {$field}' is required and cannot be empty.");
                         }
                     }
@@ -179,7 +179,7 @@ class InvoiceValidator
                 }
 
                 // For documents with id 'PIH', attachment is required.
-                if ((($doc['id'] ?? '') === 'PIH') && empty($doc['attachment'])) {
+                if (($doc['id'] === 'PIH') && empty($doc['attachment'])) {
                     throw new InvalidArgumentException("The attachment for AdditionalDocuments[{$docIndex}] with id 'PIH' is required.");
                 }
             }
