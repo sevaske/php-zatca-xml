@@ -9,14 +9,29 @@ class Storage
     private static ?string $basePath = null;
 
     /**
+     * Base path bound to this instance; null means "use the global base path".
+     */
+    private ?string $instanceBasePath = null;
+
+    /**
+     * Whether null was passed explicitly, meaning paths are used as given (full paths).
+     */
+    private bool $useFullPaths = false;
+
+    /**
      * Constructor to set base storage path.
      *
      * @param  string|null  $basePath  Root directory for storage. Set to null if you want to handle files with a full path.
+     *                                 When omitted, the global base path (see setBasePath()) is used.
      */
     public function __construct(?string $basePath = null)
     {
         if ($basePath) {
+            // Kept for backward compatibility: a non-empty path also becomes the global base path.
             self::$basePath = rtrim($basePath, DIRECTORY_SEPARATOR);
+            $this->instanceBasePath = self::$basePath;
+        } elseif ($basePath === null && func_num_args() > 0) {
+            $this->useFullPaths = true;
         }
     }
 
@@ -128,8 +143,14 @@ class Storage
      */
     public function path(string $file): string
     {
-        if (self::$basePath) {
-            return self::$basePath.DIRECTORY_SEPARATOR.$file;
+        if ($this->useFullPaths) {
+            return $file;
+        }
+
+        $basePath = $this->instanceBasePath ?? self::$basePath;
+
+        if ($basePath) {
+            return $basePath.DIRECTORY_SEPARATOR.$file;
         }
 
         return $file;
