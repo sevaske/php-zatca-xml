@@ -77,3 +77,6 @@ $RECYCLE.BIN/
 /tests/*.xml
 composer.lock
 /.phpunit.result.cache
+
+# output of the examples (generated keys, CSRs, credentials, XML)
+/examples/*/output/
