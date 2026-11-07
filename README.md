@@ -144,7 +144,7 @@ $invoiceData = [
     ],
     'supplier' => [
         'registrationName' => 'My company name',
-        'taxId' => '311111111111113',
+        'taxId' => '399999999900003',
         'identificationId' => '1111111111', // my company CRN
         'identificationType' => 'CRN',
         'address' => [

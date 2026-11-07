@@ -42,7 +42,7 @@ $invoiceData = [
     ],
     'supplier' => [
         'registrationName' => 'My company name',
-        'taxId' => '311111111111113',
+        'taxId' => '399999999900003', // VAT number of the signing certificate (sandbox / simulation sample)
         'identificationId' => '1111111111', // my company CRN
         'identificationType' => 'CRN',
         'address' => [
@@ -193,8 +193,8 @@ $certificate = (new Certificate(
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
 $generatorInvoice->saveXMLFile('Standard_Invoice.xml');
-echo "Simplified Invoice Note Generated Successfully\n";
+echo "Standard Invoice Generated Successfully\n";
 
 // sign the invoice XML with the certificate
 $signedInvoice->saveXMLFile('Standard_Invoice_Signed.xml');
-echo "Simplified Invoice Note Signed Successfully\n";
+echo "Standard Invoice Signed Successfully\n";
