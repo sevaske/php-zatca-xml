@@ -68,6 +68,101 @@ class InvoiceAmountValidator
             $actualTaxInclusive,
             "The taxInclusiveAmount ({$actualTaxInclusive}) does not equal taxExclusiveAmount ({$taxExclusiveAmount}) plus taxTotal ({$taxTotalAmount})."
         );
+
+        $lineExtensionAmount = BigDecimal::of((string) $lmt['lineExtensionAmount']);
+        $allowanceTotal = $this->optionalAmount($lmt, 'allowanceTotalAmount');
+        $chargeTotal = $this->optionalAmount($lmt, 'chargeTotalAmount');
+        $prepaidAmount = $this->optionalAmount($lmt, 'prepaidAmount');
+
+        // lineExtensionAmount = sum of the lines' net amounts
+        if (isset($data['invoiceLines']) && is_array($data['invoiceLines'])) {
+            $linesTotal = $this->sumOf($data['invoiceLines'], 'lineExtensionAmount');
+
+            $this->assertMoneyEquals(
+                $linesTotal,
+                $lineExtensionAmount,
+                "The lineExtensionAmount ({$lineExtensionAmount}) does not equal the sum of the invoice lines ({$linesTotal})."
+            );
+        }
+
+        // allowanceTotalAmount / chargeTotalAmount = sums of the document-level allowances / charges
+        if (isset($data['allowanceCharges']) && is_array($data['allowanceCharges'])) {
+            $allowances = BigDecimal::zero();
+            $charges = BigDecimal::zero();
+
+            foreach ($data['allowanceCharges'] as $allowanceCharge) {
+                $amount = $this->optionalAmount(is_array($allowanceCharge) ? $allowanceCharge : [], 'amount');
+
+                if (! empty($allowanceCharge['isCharge'])) {
+                    $charges = $charges->plus($amount);
+                } else {
+                    $allowances = $allowances->plus($amount);
+                }
+            }
+
+            $this->assertMoneyEquals($allowances, $allowanceTotal, "The allowanceTotalAmount ({$allowanceTotal}) does not equal the sum of the document-level allowances ({$allowances}).");
+            $this->assertMoneyEquals($charges, $chargeTotal, "The chargeTotalAmount ({$chargeTotal}) does not equal the sum of the document-level charges ({$charges}).");
+        }
+
+        // taxExclusiveAmount = lineExtensionAmount - allowanceTotalAmount + chargeTotalAmount
+        $expectedTaxExclusive = $lineExtensionAmount->minus($allowanceTotal)->plus($chargeTotal);
+
+        $this->assertMoneyEquals(
+            $expectedTaxExclusive,
+            $taxExclusiveAmount,
+            "The taxExclusiveAmount ({$taxExclusiveAmount}) does not equal lineExtensionAmount - allowanceTotalAmount + chargeTotalAmount ({$expectedTaxExclusive})."
+        );
+
+        // taxTotal.taxAmount and taxExclusiveAmount = sums of the VAT subtotals
+        if (isset($data['taxTotal']['subTotals']) && is_array($data['taxTotal']['subTotals']) && $data['taxTotal']['subTotals'] !== []) {
+            $subTotalsTax = $this->sumOf($data['taxTotal']['subTotals'], 'taxAmount');
+            $subTotalsTaxable = $this->sumOf($data['taxTotal']['subTotals'], 'taxableAmount');
+
+            $this->assertMoneyEquals($subTotalsTax, $taxTotalAmount, "The taxTotal taxAmount ({$taxTotalAmount}) does not equal the sum of the subtotals' taxAmount ({$subTotalsTax}).");
+            $this->assertMoneyEquals($subTotalsTaxable, $taxExclusiveAmount, "The taxExclusiveAmount ({$taxExclusiveAmount}) does not equal the sum of the subtotals' taxableAmount ({$subTotalsTaxable}).");
+        }
+
+        // payableAmount = taxInclusiveAmount - prepaidAmount
+        $expectedPayable = $actualTaxInclusive->minus($prepaidAmount);
+        $payableAmount = BigDecimal::of((string) $lmt['payableAmount']);
+
+        $this->assertMoneyEquals(
+            $expectedPayable,
+            $payableAmount,
+            "The payableAmount ({$payableAmount}) does not equal taxInclusiveAmount - prepaidAmount ({$expectedPayable})."
+        );
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    private function optionalAmount(array $data, string $field): BigDecimal
+    {
+        $value = $data[$field] ?? null;
+
+        if ($value === null || $value === '') {
+            return BigDecimal::zero();
+        }
+
+        if (! is_numeric($value)) {
+            throw new InvalidArgumentException("The field '{$field}' must be a numeric value.");
+        }
+
+        return BigDecimal::of((string) $value);
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $items
+     */
+    private function sumOf(array $items, string $field): BigDecimal
+    {
+        $sum = BigDecimal::zero();
+
+        foreach ($items as $item) {
+            $sum = $sum->plus($this->optionalAmount(is_array($item) ? $item : [], $field));
+        }
+
+        return $sum;
     }
 
     /**
