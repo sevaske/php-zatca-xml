@@ -31,7 +31,7 @@ class StorageTest extends TestCase
      */
     protected function tearDown(): void
     {
-        Storage::setBasePath('');
+        Storage::setBasePath(null);
         $this->deleteDirectory(__DIR__.'/test_storage');
     }
 
@@ -155,26 +155,19 @@ class StorageTest extends TestCase
         $this->assertFileExists(__DIR__.'/test_storage/'.$path);
     }
 
-    public function test_explicit_null_uses_full_paths_even_after_another_instance_set_a_base_path(): void
+    public function test_constructor_base_path_does_not_leak_into_other_instances(): void
     {
         new Storage(__DIR__.'/test_storage');
 
         $this->assertSame('/tmp/full/path.xml', (new Storage(null))->path('/tmp/full/path.xml'));
+        $this->assertSame('relative.xml', (new Storage)->path('relative.xml'));
     }
 
-    public function test_omitted_base_path_still_uses_the_global_one(): void
+    public function test_global_base_path_is_used_when_no_path_given(): void
     {
-        new Storage(__DIR__.'/test_storage');
+        Storage::setBasePath(__DIR__.'/test_storage/');
 
-        // Backward compatibility: a non-empty constructor path also becomes the global base path.
-        $this->assertSame(__DIR__.'/test_storage'.DIRECTORY_SEPARATOR.'file.xml', (new Storage)->path('file.xml'));
-    }
-
-    public function test_instance_keeps_its_own_base_path(): void
-    {
-        $first = new Storage('/first');
-        new Storage('/second');
-
-        $this->assertSame('/first'.DIRECTORY_SEPARATOR.'file.xml', $first->path('file.xml'));
+        $this->assertSame(__DIR__.'/test_storage/file.xml', (new Storage)->path('file.xml'));
+        $this->assertSame('/other/file.xml', (new Storage('/other'))->path('file.xml'));
     }
 }

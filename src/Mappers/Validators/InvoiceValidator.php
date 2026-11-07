@@ -134,6 +134,20 @@ class InvoiceValidator
             }
         }
 
+        // Document-level charges must be reflected in ChargeTotalAmount.
+        $hasDocumentCharges = false;
+        $documentAllowanceCharges = is_array($data['allowanceCharges'] ?? null) ? $data['allowanceCharges'] : [];
+        foreach ($documentAllowanceCharges as $allowanceCharge) {
+            if (! empty($allowanceCharge['isCharge'])) {
+                $hasDocumentCharges = true;
+                break;
+            }
+        }
+
+        if ($hasDocumentCharges && (! isset($data['legalMonetaryTotal']['chargeTotalAmount']) || $data['legalMonetaryTotal']['chargeTotalAmount'] === '')) {
+            throw new InvalidArgumentException("The field 'Legal Monetary Total chargeTotalAmount' is required when document-level charges are present.");
+        }
+
         // Validate invoiceLines.
         if (! isset($data['invoiceLines']) || ! is_array($data['invoiceLines']) || count($data['invoiceLines']) === 0) {
             throw new InvalidArgumentException('At least one invoice line is required.');

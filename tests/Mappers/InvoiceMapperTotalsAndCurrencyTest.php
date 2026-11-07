@@ -2,6 +2,7 @@
 
 namespace Saleh7\Zatca\Tests\Mappers;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Saleh7\Zatca\GeneratorInvoice;
 use Saleh7\Zatca\Mappers\InvoiceMapper;
@@ -32,46 +33,61 @@ class InvoiceMapperTotalsAndCurrencyTest extends TestCase
         $this->assertStringNotContainsString('ChargeTotalAmount', $this->generate(InvoiceDataFixture::simplified()));
     }
 
-    public function test_document_level_charge_without_charge_total_amount_is_still_accepted(): void
+    public function test_document_level_charge_requires_charge_total_amount(): void
     {
         $data = InvoiceDataFixture::simplified();
         $data['allowanceCharges'][0]['isCharge'] = true;
 
-        $this->assertStringNotContainsString('ChargeTotalAmount', $this->generate($data));
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('chargeTotalAmount');
+
+        (new InvoiceMapper)->mapToInvoice($data);
     }
 
-    public function test_tax_amount_in_tax_currency_is_written_in_tax_currency(): void
+    public function test_amounts_use_the_invoice_document_currency(): void
     {
         $data = InvoiceDataFixture::simplified();
         $data['currencyCode'] = 'USD';
         $data['taxTotal']['taxAmountInTaxCurrency'] = 25.73;
 
-        $invoice = (new InvoiceMapper)->mapToInvoice($data);
-        $xml = GeneratorInvoice::invoice($invoice, 'USD')->getXML();
+        $xml = $this->generate($data);
 
         $this->assertStringContainsString('<cbc:DocumentCurrencyCode>USD</cbc:DocumentCurrencyCode>', $xml);
+        $this->assertStringContainsString('<cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>', $xml);
         $this->assertStringContainsString('<cbc:PayableAmount currencyID="USD">52.61</cbc:PayableAmount>', $xml);
-        $this->assertSame([['SAR', '25.73'], ['USD', '6.86']], $this->taxTotals($xml));
+
+        preg_match_all('#<cac:TaxTotal>\s*<cbc:TaxAmount currencyID="(\w+)">([\d.]+)<#', $xml, $matches);
+        $this->assertSame(['SAR', 'USD'], array_slice($matches[1], 0, 2));
+        $this->assertSame(['25.73', '6.86'], array_slice($matches[2], 0, 2));
     }
 
-    public function test_without_tax_amount_in_tax_currency_output_is_unchanged(): void
+    public function test_foreign_currency_without_tax_currency_amount_throws(): void
     {
         $data = InvoiceDataFixture::simplified();
         $data['currencyCode'] = 'USD';
 
-        $invoice = (new InvoiceMapper)->mapToInvoice($data);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Tax amount in tax currency (SAR)');
 
-        $this->assertSame([['SAR', '6.86'], ['SAR', '6.86']], $this->taxTotals(GeneratorInvoice::invoice($invoice)->getXML()));
-        $this->assertSame([['USD', '6.86'], ['USD', '6.86']], $this->taxTotals(GeneratorInvoice::invoice($invoice, 'USD')->getXML()));
+        $this->generate($data);
     }
 
-    /**
-     * @return array<int, array{0: string, 1: string}> currency and amount of the first two TaxTotal elements
-     */
-    private function taxTotals(string $xml): array
+    public function test_sar_invoice_tax_totals_are_unchanged(): void
     {
-        preg_match_all('#<cac:TaxTotal>\s*<cbc:TaxAmount currencyID="(\w+)">([\d.]+)<#', $xml, $matches, PREG_SET_ORDER);
+        $xml = $this->generate(InvoiceDataFixture::simplified());
 
-        return array_map(fn ($m) => [$m[1], $m[2]], array_slice($matches, 0, 2));
+        preg_match_all('#<cac:TaxTotal>\s*<cbc:TaxAmount currencyID="(\w+)">([\d.]+)<#', $xml, $matches);
+        $this->assertSame(['SAR', 'SAR'], array_slice($matches[1], 0, 2));
+        $this->assertSame(['6.86', '6.86'], array_slice($matches[2], 0, 2));
+    }
+
+    public function test_explicit_generator_currency_still_overrides(): void
+    {
+        $invoice = (new InvoiceMapper)->mapToInvoice(InvoiceDataFixture::simplified());
+
+        $this->assertStringContainsString(
+            '<cbc:PayableAmount currencyID="EUR">',
+            GeneratorInvoice::invoice($invoice, 'EUR')->getXML()
+        );
     }
 }

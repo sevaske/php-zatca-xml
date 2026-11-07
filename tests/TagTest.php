@@ -123,4 +123,27 @@ class TagTest extends TestCase
         // Verify that __toString returns the expected binary string.
         $this->assertEquals($expectedBinary, $tag->__toString(), 'Base Tag: TLV encoding mismatch.');
     }
+
+    public function test_value_of_255_bytes_is_encoded_with_single_length_byte(): void
+    {
+        $value = str_repeat('a', 255);
+        $encoded = (string) new Seller($value);
+
+        $this->assertSame("\x01\xFF".$value, $encoded);
+    }
+
+    public function test_value_longer_than_255_bytes_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('QR tag 1 value is 300 bytes long');
+
+        new Seller(str_repeat('ب', 150)); // 150 Arabic letters = 300 bytes
+    }
+
+    public function test_tag_number_out_of_range_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Tag(256, 'value');
+    }
 }

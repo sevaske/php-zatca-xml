@@ -79,7 +79,7 @@ class Invoice implements XmlSerializable
     /** @var TaxTotal|null Tax total details. */
     private ?TaxTotal $taxTotal = null;
 
-    /** @var float|null Total VAT amount in the tax currency (BT-111); written instead of the document-currency amount when set. */
+    /** @var float|null Total VAT amount in the tax currency (BT-111), required when it differs from the document currency. */
     private ?float $taxAmountInTaxCurrency = null;
 
     /** @var LegalMonetaryTotal|null Legal monetary total. */
@@ -497,8 +497,8 @@ class Invoice implements XmlSerializable
     /**
      * Set the total VAT amount expressed in the tax currency (BT-111).
      *
-     * Use it when the document currency differs from the tax currency (SAR).
-     * If not set, the document-currency tax amount is written, as before.
+     * Required when the document currency differs from the tax currency (SAR);
+     * otherwise the document-currency tax amount is used.
      *
      * @throws InvalidArgumentException if the amount is negative.
      */
@@ -709,26 +709,24 @@ class Invoice implements XmlSerializable
 
         // TaxTotal
         if ($this->taxTotal !== null) {
-            // Total VAT amount without subtotals. When the amount in the tax currency (BT-111)
-            // is set explicitly, it is written in the tax currency; otherwise the document tax amount is used.
-            if ($this->taxAmountInTaxCurrency !== null) {
+            // Total VAT amount in the tax currency (BT-111), without subtotals.
+            $taxAmountInTaxCurrency = $this->taxAmountInTaxCurrency;
+            if ($taxAmountInTaxCurrency === null && $this->taxCurrencyCode !== $this->invoiceCurrencyCode) {
+                throw new InvalidArgumentException(sprintf(
+                    'Tax amount in tax currency (%s) is required when the document currency (%s) differs from it.',
+                    $this->taxCurrencyCode,
+                    $this->invoiceCurrencyCode
+                ));
+            }
+            $taxAmountInTaxCurrency ??= $this->taxTotal->taxAmount;
+
+            if ($taxAmountInTaxCurrency !== null) {
                 $writer->write([
                     Schema::CAC.'TaxTotal' => [
                         Schema::CBC.'TaxAmount' => [
-                            'value' => number_format($this->taxAmountInTaxCurrency, 2, '.', ''),
+                            'value' => number_format($taxAmountInTaxCurrency, 2, '.', ''),
                             'attributes' => [
                                 'currencyID' => $this->taxCurrencyCode,
-                            ],
-                        ],
-                    ],
-                ]);
-            } elseif (isset($this->taxTotal->taxAmount) && $this->taxTotal->taxAmount !== null) {
-                $writer->write([
-                    Schema::CAC.'TaxTotal' => [
-                        Schema::CBC.'TaxAmount' => [
-                            'value' => number_format($this->taxTotal->taxAmount, 2, '.', ''),
-                            'attributes' => [
-                                'currencyID' => GeneratorInvoice::$currencyID,
                             ],
                         ],
                     ],

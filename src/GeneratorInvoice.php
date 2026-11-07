@@ -26,13 +26,14 @@ class GeneratorInvoice
      * Generate the invoice XML.
      *
      * @param  Invoice  $invoice  The invoice object to serialize.
-     * @param  string  $currencyId  Currency identifier. Default is 'SAR'.
+     * @param  string|null  $currencyId  Currency of the document amounts. Defaults to the invoice's
+     *                                   document currency code; pass it only to override that value.
      * @return self The instance of GeneratorInvoice.
      */
-    public static function invoice(Invoice $invoice, string $currencyId = 'SAR'): self
+    public static function invoice(Invoice $invoice, ?string $currencyId = null): self
     {
         $instance = new self;
-        self::$currencyID = $currencyId;
+        self::$currencyID = $currencyId ?? $invoice->getInvoiceCurrencyCode();
 
         $xmlService = new Service;
         $xmlService->namespaceMap = [

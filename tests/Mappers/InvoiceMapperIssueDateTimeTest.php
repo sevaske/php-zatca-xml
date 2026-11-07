@@ -2,6 +2,7 @@
 
 namespace Saleh7\Zatca\Tests\Mappers;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Saleh7\Zatca\GeneratorInvoice;
 use Saleh7\Zatca\Mappers\InvoiceMapper;
@@ -71,15 +72,26 @@ class InvoiceMapperIssueDateTimeTest extends TestCase
         $this->assertSame(['2024-09-07', '17:41:08Z'], $this->issueDateAndTime($data));
     }
 
-    public function test_unparsable_issue_date_keeps_falling_back_to_today(): void
+    public function invalidDateProvider(): array
     {
-        date_default_timezone_set('UTC');
+        return [
+            'unparsable' => ['issueDate', '2026-13-45'],
+            'overflowing day' => ['issueDate', '2026-02-30'],
+            'garbage time' => ['issueTime', 'not-a-time'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidDateProvider
+     */
+    public function test_invalid_date_values_throw_instead_of_falling_back_to_now(string $field, string $value): void
+    {
         $data = InvoiceDataFixture::simplified();
-        $data['issueDate'] = '2026-13-45';
-        $data['issueTime'] = '10:00:00';
+        $data[$field] = $value;
 
-        [$date] = $this->issueDateAndTime($data);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("'{$field}'");
 
-        $this->assertSame(gmdate('Y-m-d'), $date);
+        (new InvoiceMapper)->mapToInvoice($data);
     }
 }

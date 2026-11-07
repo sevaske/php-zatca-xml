@@ -386,13 +386,15 @@ class InvoiceMapper
      * both interpreted in the timezone of the time value (explicit offset or PHP default),
      * and only then converted to UTC. This keeps IssueDate and IssueTime describing the
      * same instant. If $issueTime is empty, the current time is used.
+     *
+     * @throws InvalidArgumentException If a value cannot be parsed as a valid date/time.
      */
     private function mapIssueDateTime(string $issueDate, ?string $issueTime): DateTime
     {
-        $date = $this->parseDateTime($issueDate);
+        $date = $this->parseDateTime($issueDate, 'issueDate');
         $time = empty($issueTime)
             ? new DateTime('now', $date->getTimezone())
-            : $this->parseDateTime($issueTime);
+            : $this->parseDateTime($issueTime, 'issueTime');
 
         $issuedAt = DateTime::createFromFormat(
             '!Y-m-d H:i:s',
@@ -404,16 +406,24 @@ class InvoiceMapper
     }
 
     /**
-     * Parse a date/time string.
+     * Parse a date/time string strictly.
      *
-     * Unparsable values fall back to the current UTC date/time (kept for backward compatibility).
+     * @throws InvalidArgumentException If the value is not a valid date/time
+     *                                  (including overflowing values such as 2024-02-30).
      */
-    private function parseDateTime(string $value): DateTime
+    private function parseDateTime(string $value, string $field): DateTime
     {
         try {
-            return new DateTime($value);
-        } catch (Exception) {
-            return new DateTime('now', new DateTimeZone('UTC'));
+            $dateTime = new DateTime($value);
+        } catch (Exception $e) {
+            throw new InvalidArgumentException("The field '{$field}' has an invalid date/time value: '{$value}'.", 0, $e);
         }
+
+        $errors = DateTime::getLastErrors();
+        if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+            throw new InvalidArgumentException("The field '{$field}' has an invalid date/time value: '{$value}'.");
+        }
+
+        return $dateTime;
     }
 }

@@ -6,43 +6,37 @@ use Saleh7\Zatca\Exceptions\ZatcaStorageException;
 
 class Storage
 {
-    private static ?string $basePath = null;
-
     /**
-     * Base path bound to this instance; null means "use the global base path".
+     * Global default base path, set only via setBasePath().
      */
-    private ?string $instanceBasePath = null;
+    private static ?string $defaultBasePath = null;
 
     /**
-     * Whether null was passed explicitly, meaning paths are used as given (full paths).
+     * Base path of this instance.
      */
-    private bool $useFullPaths = false;
+    private ?string $basePath;
 
     /**
-     * Constructor to set base storage path.
+     * Constructor to set the base storage path of this instance.
      *
-     * @param  string|null  $basePath  Root directory for storage. Set to null if you want to handle files with a full path.
-     *                                 When omitted, the global base path (see setBasePath()) is used.
+     * @param  string|null  $basePath  Root directory for storage. If null, the global path from setBasePath()
+     *                                 is used; if that is not set either, paths are used as given (full paths).
      */
     public function __construct(?string $basePath = null)
     {
-        if ($basePath) {
-            // Kept for backward compatibility: a non-empty path also becomes the global base path.
-            self::$basePath = rtrim($basePath, DIRECTORY_SEPARATOR);
-            $this->instanceBasePath = self::$basePath;
-        } elseif ($basePath === null && func_num_args() > 0) {
-            $this->useFullPaths = true;
-        }
+        $this->basePath = $basePath
+            ? rtrim($basePath, DIRECTORY_SEPARATOR)
+            : self::$defaultBasePath;
     }
 
     /**
-     * Sets a global base storage path.
+     * Sets a global default base storage path for instances created without an explicit path.
      *
-     * @param  string  $path  The base directory.
+     * @param  string|null  $path  The base directory, or null to reset.
      */
-    public static function setBasePath(string $path): void
+    public static function setBasePath(?string $path): void
     {
-        self::$basePath = rtrim($path, DIRECTORY_SEPARATOR);
+        self::$defaultBasePath = $path ? rtrim($path, DIRECTORY_SEPARATOR) : null;
     }
 
     /**
@@ -143,14 +137,8 @@ class Storage
      */
     public function path(string $file): string
     {
-        if ($this->useFullPaths) {
-            return $file;
-        }
-
-        $basePath = $this->instanceBasePath ?? self::$basePath;
-
-        if ($basePath) {
-            return $basePath.DIRECTORY_SEPARATOR.$file;
+        if ($this->basePath) {
+            return $this->basePath.DIRECTORY_SEPARATOR.$file;
         }
 
         return $file;
