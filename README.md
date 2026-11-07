@@ -364,6 +364,12 @@ A rejected invoice is returned as a result, not thrown: see `getValidationResult
 
 ---
 
+## ⬆️ Upgrading from 3.x
+
+See [UPGRADE.md](UPGRADE.md) and [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
