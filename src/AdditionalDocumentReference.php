@@ -132,11 +132,11 @@ class AdditionalDocumentReference implements XmlDeserializable, XmlSerializable
     /**
      * The xmlDeserialize method is called during xml reading.
      */
-    public static function xmlDeserialize(Reader $reader): static
+    public static function xmlDeserialize(Reader $reader): self
     {
         $keyValues = keyValue($reader);
 
-        return (new static)
+        return (new self)
             ->setId($keyValues[Schema::CBC.'ID'] ?? null)
             ->setDocumentType($keyValues[Schema::CBC.'DocumentType'] ?? null)
             ->setDocumentTypeCode($keyValues[Schema::CBC.'DocumentTypeCode'] ?? null)

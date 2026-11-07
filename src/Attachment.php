@@ -162,12 +162,12 @@ class Attachment implements XmlDeserializable, XmlSerializable
     /**
      * The xmlDeserialize method is called during xml reading.
      */
-    public static function xmlDeserialize(Reader $reader): static
+    public static function xmlDeserialize(Reader $reader): self
     {
         $mixedContent = mixedContent($reader);
         $embeddedDocumentBinaryObject = array_values(array_filter($mixedContent, fn ($element) => $element['name'] === Schema::CBC.'EmbeddedDocumentBinaryObject'))[0] ?? null;
 
-        return (new static)
+        return (new self)
             ->setBase64Content(
                 $embeddedDocumentBinaryObject['value'] ?? null,
                 $embeddedDocumentBinaryObject['attributes']['filename'] ?? null,

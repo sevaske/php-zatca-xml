@@ -31,9 +31,9 @@ class InvoiceExtension
     /**
      * WeakMap to store DOMElement => InvoiceExtension mapping.
      *
-     * @var WeakMap<DOMElement, self>|null|false
+     * @var WeakMap<DOMElement, self>|null
      */
-    private static $elements = null;
+    private static ?WeakMap $elements = null;
 
     protected DOMElement $element;
 
@@ -71,13 +71,9 @@ class InvoiceExtension
      */
     public static function fromElement(DOMElement $element): self
     {
-        if (self::$elements) {
-            return self::$elements->offsetExists($element)
-                ? self::$elements->offsetGet($element)
-                : new self($element);
-        }
+        $elements = self::elements();
 
-        return $element->uxml ?? new self($element);
+        return $elements->offsetExists($element) ? $elements->offsetGet($element) : new self($element);
     }
 
     /**
@@ -136,15 +132,16 @@ class InvoiceExtension
      */
     private function __construct(DOMElement $element)
     {
-        if (self::$elements === null) {
-            self::$elements = class_exists(WeakMap::class) ? new WeakMap : false;
-        }
         $this->element = $element;
-        if (self::$elements) {
-            self::$elements->offsetSet($this->element, $this);
-        } else {
-            $this->element->uxml = $this;
-        }
+        self::elements()->offsetSet($this->element, $this);
+    }
+
+    /**
+     * @return WeakMap<DOMElement, self>
+     */
+    private static function elements(): WeakMap
+    {
+        return self::$elements ??= new WeakMap;
     }
 
     /**
@@ -323,10 +320,7 @@ class InvoiceExtension
         $doc->encoding = $encoding;
         $doc->formatOutput = $format;
 
-        $rootNode = $doc->importNode($this->element, true);
-        if ($rootNode !== false) {
-            $doc->appendChild($rootNode);
-        }
+        $doc->appendChild($doc->importNode($this->element, true));
         $xmlString = $version === null
             ? $doc->saveXML($doc->documentElement)
             : $doc->saveXML();
@@ -353,16 +347,18 @@ class InvoiceExtension
             $signatureValue = base64_encode($certificate->getPrivateKey()->sign(base64_decode($invoiceDigest)));
         }
 
-        $issueDate = $this->find('cbc:IssueDate')?->toText();
-        $issueTime = $this->find('cbc:IssueTime')?->toText();
-        $issueTime = stripos($issueTime, 'Z') === false ? $issueTime.'Z' : $issueTime;
+        // The QR timestamp must match IssueDate / IssueTime exactly as written in the XML
+        // (ZATCA warns "invoiceTimeStamp_QRCODE_INVALID" otherwise).
+        $issueDate = (string) $this->find('cbc:IssueDate')?->toText();
+        $issueTime = (string) $this->find('cbc:IssueTime')?->toText();
 
         $qrTags = [
             new Seller($this->find('cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName')?->toText()),
             new TaxNumber($this->find('cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID')?->toText()),
             new InvoiceDate($issueDate.'T'.$issueTime),
             new InvoiceTotalAmount($this->find('cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount')?->toText()),
-            new InvoiceTaxAmount($this->find('cac:TaxTotal')?->toText()),
+            // VAT total: TaxAmount of the first TaxTotal (the total without subtotals)
+            new InvoiceTaxAmount((string) $this->find('cac:TaxTotal/cbc:TaxAmount')?->toText()),
             new InvoiceHash($invoiceDigest),
             new InvoiceDigitalSignature($signatureValue),
             new PublicKey(base64_decode($certificate->getRawPublicKey())),
@@ -386,7 +382,21 @@ class InvoiceExtension
      */
     public function computeXmlDigest(): string
     {
-        $clonedXml = clone $this;
+        // Work on a copy of the whole document: removing nodes must not modify this one.
+        // (importNode() would move namespace declarations and change the canonical form.)
+        $document = $this->element->ownerDocument?->cloneNode(true);
+
+        if (! $document instanceof DOMDocument) {
+            throw new \RuntimeException('Failed to copy the invoice XML.');
+        }
+
+        $copy = (new DOMXPath($document))->query((string) $this->element->getNodePath())->item(0);
+
+        if (! $copy instanceof DOMElement) {
+            throw new \RuntimeException('Failed to copy the invoice XML.');
+        }
+
+        $clonedXml = new self($copy);
 
         // Remove unwanted elements for digest computation.
         $clonedXml->removeByXpath('ext:UBLExtensions');

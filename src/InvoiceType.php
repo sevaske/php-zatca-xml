@@ -150,29 +150,18 @@ class InvoiceType implements XmlSerializable
 
         // Determine the complete invoice type value based on the invoice category.
         $invoiceTypeValue = match ($this->invoice) {
-            'standard' => match ($this->invoiceType) {
-                'invoice', 'debit', 'credit', 'prepayment' => InvoiceTypeCode::STANDARD_INVOICE,
-                default => throw new InvalidArgumentException('Invalid invoice type provided.'),
-            },
-            'simplified' => match ($this->invoiceType) {
-                'invoice', 'debit', 'credit', 'prepayment' => InvoiceTypeCode::SIMPLIFIED_INVOICE,
-                default => throw new InvalidArgumentException('Invalid invoice type provided.'),
-            },
+            'standard' => InvoiceTypeCode::STANDARD_INVOICE,
+            'simplified' => InvoiceTypeCode::SIMPLIFIED_INVOICE,
             default => throw new InvalidArgumentException('Invalid invoice category provided.'),
         };
 
-        // Adjust type value based on additional flags.
-        if (strlen($invoiceTypeValue) >= 7) {
-            $prefix = substr($invoiceTypeValue, 0, 2);
-            $p = $this->isThirdParty ? '1' : '0'; // Third-party transaction
-            $n = $this->isNominal ? '1' : '0'; // Nominal transaction
-            $e = $this->isExportInvoice ? '1' : '0'; // Export invoice
-            $s = $this->isSummary ? '1' : '0'; // Summary invoice
-            $b = $this->isSelfBilled ? '1' : '0'; // Self-billed invoice
-
-            // Update the invoice type value. [PNESB]
-            $invoiceTypeValue = $prefix.$p.$n.$e.$s.$b;
-        }
+        // Transaction flags NNPNESB: subtype (2 digits), third party, nominal, export, summary, self-billed.
+        $invoiceTypeValue = substr($invoiceTypeValue, 0, 2)
+            .($this->isThirdParty ? '1' : '0')
+            .($this->isNominal ? '1' : '0')
+            .($this->isExportInvoice ? '1' : '0')
+            .($this->isSummary ? '1' : '0')
+            .($this->isSelfBilled ? '1' : '0');
 
         // Write the InvoiceTypeCode element with attributes.
         $writer->write([

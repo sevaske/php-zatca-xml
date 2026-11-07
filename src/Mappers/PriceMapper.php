@@ -17,7 +17,7 @@ use Saleh7\Zatca\UnitCode;
  *   "amount" => 100.0, // Price amount.
  *   "allowanceCharges" => [ // Optional, an array of allowance charge data.
  *       [
- *           "isCharge" => true,
+ *           "isCharge" => false,
  *           "reason" => "discount",
  *           "amount" => 5.0
  *       ],
@@ -46,7 +46,7 @@ class PriceMapper
 
             foreach ($data['allowanceCharges'] as $charge) {
                 $allowanceCharges[] = (new AllowanceCharge)
-                    ->setChargeIndicator($charge['isCharge'] ?? true)
+                    ->setChargeIndicator($charge['isCharge'] ?? false)
                     ->setAllowanceChargeReason($charge['reason'] ?? 'discount')
                     ->setAmount($charge['amount'] ?? 0.00);
             }

@@ -166,11 +166,15 @@ class InvoiceValidator
                 throw new InvalidArgumentException("The field 'Invoice Lines[{$lineIndex}] Item name' is required and cannot be empty.");
             }
 
-            if (! isset($line['item']['classifiedTaxCategory'][0]['taxScheme']) || ! isset($line['item']['classifiedTaxCategory'][0]['taxScheme']['id']) || empty($line['item']['classifiedTaxCategory'][0]['taxScheme']['id'])) {
+            // a single tax category object is accepted as well as a list of them
+            $taxCategories = $line['item']['classifiedTaxCategory'] ?? [];
+            $taxCategory = is_array($taxCategories) ? (array_is_list($taxCategories) ? ($taxCategories[0] ?? []) : $taxCategories) : [];
+
+            if (empty($taxCategory['taxScheme']['id'])) {
                 throw new InvalidArgumentException("The field 'Invoice Lines[{$lineIndex}] Item TaxScheme id' is required and cannot be empty.");
             }
 
-            if (! isset($line['item']['classifiedTaxCategory'][0]['percent']) || $line['item']['classifiedTaxCategory'][0]['percent'] === '') {
+            if (! isset($taxCategory['percent']) || $taxCategory['percent'] === '') {
                 throw new InvalidArgumentException("The field 'Invoice Lines[{$lineIndex}] Item percent' is required and cannot be empty.");
             }
 

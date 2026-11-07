@@ -182,10 +182,8 @@ class AllowanceCharge implements XmlSerializable
 
     /**
      * Get the tax category.
-     *
-     * @return array|null
      */
-    public function getTaxCategory(): ?TaxCategory
+    public function getTaxCategory(): ?array
     {
         return $this->taxCategory;
     }
@@ -264,6 +262,19 @@ class AllowanceCharge implements XmlSerializable
             ]);
         }
 
+        // BaseAmount follows Amount in the UBL schema
+        if ($this->baseAmount !== null) {
+            $writer->write([
+                [
+                    'name' => Schema::CBC.'BaseAmount',
+                    'value' => number_format($this->baseAmount, 2, '.', ''),
+                    'attributes' => [
+                        'currencyID' => GeneratorInvoice::$currencyID,
+                    ],
+                ],
+            ]);
+        }
+
         if ($this->taxCategory !== null) {
             foreach ($this->taxCategory as $taxCategory) {
                 $writer->write([
@@ -278,16 +289,5 @@ class AllowanceCharge implements XmlSerializable
             ]);
         }
 
-        if ($this->baseAmount !== null) {
-            $writer->write([
-                [
-                    'name' => Schema::CBC.'BaseAmount',
-                    'value' => number_format($this->baseAmount, 2, '.', ''),
-                    'attributes' => [
-                        'currencyID' => GeneratorInvoice::$currencyID,
-                    ],
-                ],
-            ]);
-        }
     }
 }

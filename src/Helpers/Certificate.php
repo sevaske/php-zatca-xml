@@ -47,7 +47,15 @@ class Certificate
         $this->secretKey = $secretKey;
         $this->rawCertificate = $rawCert;
         $this->x509 = new X509;
-        $this->x509->loadX509($rawCert);
+        try {
+            $loaded = $this->x509->loadX509($rawCert);
+        } catch (\Throwable $e) {
+            $loaded = false;
+        }
+
+        if ($loaded === false) {
+            throw new \InvalidArgumentException('Failed to load the X.509 certificate: expected a base64-encoded DER or PEM certificate.', 0, $e ?? null);
+        }
         $this->privateKey = EC::loadPrivateKey($privateKeyStr);
     }
 

@@ -33,7 +33,7 @@ class InvoiceSignatureBuilder
     public function buildSignatureXml(): string
     {
         // Get current date and time in ISO8601 format.
-        $signingTime = date('Y-m-d').'T'.date('H:i:s');
+        $signingTime = date('Y-m-d\TH:i:s');
 
         // Create the signed properties XML.
         $signedPropertiesXml = $this->createSignedPropertiesXml($signingTime);

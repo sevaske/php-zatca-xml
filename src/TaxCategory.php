@@ -206,7 +206,7 @@ class TaxCategory implements XmlSerializable
 
         // Write percent without decimals
         $writer->write([
-            Schema::CBC.'Percent' => number_format($this->percent, 0, '.', ''),
+            Schema::CBC.'Percent' => number_format($this->percent, 2, '.', ''),
         ]);
 
         if ($this->taxExemptionReasonCode !== null) {

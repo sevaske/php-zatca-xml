@@ -40,6 +40,9 @@ class Invoice implements XmlSerializable
 
     private string $languageID = 'en';
 
+    /** @var list<array{text: string, languageID: string}> Additional notes. */
+    private array $additionalNotes = [];
+
     /** @var string Invoice currency code. */
     private string $invoiceCurrencyCode = 'SAR';
 
@@ -312,6 +315,34 @@ class Invoice implements XmlSerializable
         }
 
         return $this;
+    }
+
+    /**
+     * Add a note (cbc:Note). UBL allows several notes, e.g. the same text in Arabic and English.
+     *
+     * @throws InvalidArgumentException if the language ID is empty.
+     */
+    public function addNote(string $note, string $languageID = 'en'): self
+    {
+        if (trim($languageID) === '') {
+            throw new InvalidArgumentException('languageID cannot be empty.');
+        }
+
+        $this->additionalNotes[] = ['text' => $note, 'languageID' => $languageID];
+
+        return $this;
+    }
+
+    /**
+     * All notes: the one set with setNote() followed by those added with addNote().
+     *
+     * @return list<array{text: string, languageID: string}>
+     */
+    public function getNotes(): array
+    {
+        $notes = $this->note !== null ? [['text' => $this->note, 'languageID' => $this->languageID]] : [];
+
+        return array_merge($notes, $this->additionalNotes);
     }
 
     public function setLanguageID(string $languageID = 'en'): self
@@ -612,14 +643,14 @@ class Invoice implements XmlSerializable
             $writer->write([$this->invoiceType]);
         }
 
-        // Note
-        if ($this->note !== null) {
+        // Note(s)
+        foreach ($this->getNotes() as $note) {
             $writer->write([
                 [
                     'name' => Schema::CBC.'Note',
-                    'value' => $this->note,
+                    'value' => $note['text'],
                     'attributes' => [
-                        'languageID' => $this->languageID,
+                        'languageID' => $note['languageID'],
                     ],
                 ],
             ]);
@@ -758,7 +789,7 @@ class Invoice implements XmlSerializable
 
         $time = $this->issueTime->format('H:i:s');
 
-        if ($this->issueTime->getTimezone()->getName() === 'UTC') {
+        if ($this->issueTime->getOffset() === 0) {
             $time .= 'Z';
         }
 

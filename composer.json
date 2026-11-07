@@ -60,6 +60,7 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit tests",
+        "analyse": "vendor/bin/phpstan analyse",
         "phpcs": "vendor/bin/phpcs -n --standard=phpcs.xml ./src/"
     },
     "support": {

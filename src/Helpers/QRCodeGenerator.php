@@ -17,7 +17,7 @@ class QRCodeGenerator
      *
      * Filters the input to include only valid Tag instances.
      *
-     * @param  Tag[]  $tags  Array of Tag objects.
+     * @param  array<mixed>  $tags  Array of Tag objects; other values are ignored.
      *
      * @throws InvalidArgumentException if no valid Tag instances are provided.
      */

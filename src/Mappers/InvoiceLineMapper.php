@@ -122,7 +122,7 @@ class InvoiceLineMapper
             if (isset($allowanceCharge['taxCategories']) && is_array($allowanceCharge['taxCategories'])) {
                 foreach ($allowanceCharge['taxCategories'] as $taxCatData) {
                     $taxCategory = (new TaxCategory)
-                        ->setPercent($taxCatData['percent'])
+                        ->setPercent(TaxPercent::required($taxCatData, 'invoice line allowance charge tax category'))
                         ->setTaxScheme(
                             (new TaxScheme)
                                 ->setId($taxCatData['taxScheme']['id'] ?? 'VAT')

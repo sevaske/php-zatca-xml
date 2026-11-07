@@ -364,21 +364,7 @@ class InvoiceLine implements XmlSerializable
             ],
         ]);
 
-        // Write each AllowanceCharge element if available
-        if ($this->allowanceCharges !== null) {
-            foreach ($this->allowanceCharges as $allowanceCharge) {
-                $writer->write([
-                    Schema::CAC.'AllowanceCharge' => $allowanceCharge,
-                ]);
-            }
-        }
-
-        // Write DocumentReference element if available
-        if ($this->documentReference !== null) {
-            $writer->write([
-                Schema::CAC.'DocumentReference' => $this->documentReference,
-            ]);
-        }
+        // Element order follows the UBL 2.1 InvoiceLine schema.
 
         // Write AccountingCostCode if available
         if ($this->accountingCostCode !== null) {
@@ -394,13 +380,21 @@ class InvoiceLine implements XmlSerializable
             ]);
         }
 
-        // Write InvoicePeriod element if available
-        // todo
-        //        if ($this->invoicePeriod !== null) {
-        //            $writer->write([
-        //                Schema::CAC.'InvoicePeriod' => $this->invoicePeriod,
-        //            ]);
-        //        }
+        // Write DocumentReference element if available
+        if ($this->documentReference !== null) {
+            $writer->write([
+                Schema::CAC.'DocumentReference' => $this->documentReference,
+            ]);
+        }
+
+        // Write each AllowanceCharge element if available
+        if ($this->allowanceCharges !== null) {
+            foreach ($this->allowanceCharges as $allowanceCharge) {
+                $writer->write([
+                    Schema::CAC.'AllowanceCharge' => $allowanceCharge,
+                ]);
+            }
+        }
 
         // Write TaxTotal element if available
         if ($this->taxTotal !== null) {
@@ -414,15 +408,13 @@ class InvoiceLine implements XmlSerializable
             Schema::CAC.'Item' => $this->item,
         ]);
 
-        // Write Price element if available; otherwise output a null TaxScheme as fallback.
-        if ($this->price !== null) {
-            $writer->write([
-                Schema::CAC.'Price' => $this->price,
-            ]);
-        } else {
-            $writer->write([
-                Schema::CAC.'TaxScheme' => null,
-            ]);
+        // Write Price element (mandatory: BR-26, every invoice line has an item net price)
+        if ($this->price === null) {
+            throw new InvalidArgumentException(sprintf('Invoice line "%s" has no price.', (string) $this->id));
         }
+
+        $writer->write([
+            Schema::CAC.'Price' => $this->price,
+        ]);
     }
 }

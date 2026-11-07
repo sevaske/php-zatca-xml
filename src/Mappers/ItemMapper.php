@@ -32,13 +32,20 @@ class ItemMapper
     {
         $classifiedTax = [];
         if (isset($data['classifiedTaxCategory']) && is_array($data['classifiedTaxCategory'])) {
-            foreach ($data['classifiedTaxCategory'] as $tax) {
+            $taxes = $data['classifiedTaxCategory'];
+
+            // a single tax category object instead of a list of them
+            if (! array_is_list($taxes)) {
+                $taxes = [$taxes];
+            }
+
+            foreach ($taxes as $tax) {
                 // Map TaxScheme for the item.
                 $taxScheme = (new TaxScheme)->setId($tax['taxScheme']['id'] ?? 'VAT');
 
                 // Create ClassifiedTaxCategory
                 $taxCategory = (new ClassifiedTaxCategory)
-                    ->setPercent($tax['percent'] ?? 15)
+                    ->setPercent(TaxPercent::required($tax, 'item classified tax category'))
                     ->setTaxScheme($taxScheme);
 
                 // Allow explicit VAT category code (S, Z, E, O)

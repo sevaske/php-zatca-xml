@@ -92,8 +92,19 @@ class InvoiceAmountValidator
                 throw new InvalidArgumentException("Invoice Line [{$index}] Price amount cannot be negative.");
             }
 
-            // Expected = price * quantity
-            $expectedLineExtension = $priceAmount->multipliedBy($line['quantity']);
+            // Expected = price * quantity - line allowances + line charges
+            $expectedLineExtension = $priceAmount->multipliedBy(BigDecimal::of((string) $line['quantity']));
+
+            foreach ($line['allowanceCharges'] ?? [] as $chargeIndex => $allowanceCharge) {
+                if (! isset($allowanceCharge['amount']) || ! is_numeric($allowanceCharge['amount'])) {
+                    throw new InvalidArgumentException("Invoice Line [{$index}] allowanceCharges[{$chargeIndex}] amount must be a numeric value.");
+                }
+
+                $amount = BigDecimal::of((string) $allowanceCharge['amount']);
+                $expectedLineExtension = ! empty($allowanceCharge['isCharge'])
+                    ? $expectedLineExtension->plus($amount)
+                    : $expectedLineExtension->minus($amount);
+            }
             $providedLineExtension = BigDecimal::of((string) $line['lineExtensionAmount']);
 
             $this->assertMoneyEquals(

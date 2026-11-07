@@ -149,11 +149,9 @@ class InvoiceMapper
             ->setSignature($this->mapSignature($data['signature'] ?? []));
 
         // Add additional notes if available.
-        if (isset($data['notes'])) {
+        if (isset($data['notes']) && is_array($data['notes'])) {
             foreach ($data['notes'] as $note) {
-                $invoice
-                    ->setNote($note['text'] ?? '')
-                    ->setLanguageID($note['languageId'] ?? 'en');
+                $invoice->addNote((string) ($note['text'] ?? ''), (string) ($note['languageId'] ?? $note['languageID'] ?? 'en'));
             }
         }
 
@@ -276,7 +274,7 @@ class InvoiceMapper
             if (isset($allowanceCharge['taxCategories']) && is_array($allowanceCharge['taxCategories'])) {
                 foreach ($allowanceCharge['taxCategories'] as $taxCatData) {
                     $taxCategory = (new TaxCategory)
-                        ->setPercent($taxCatData['percent'] ?? 15)
+                        ->setPercent(TaxPercent::required($taxCatData, 'allowance charge tax category'))
                         ->setTaxScheme(
                             (new TaxScheme)->setId($taxCatData['taxScheme']['id'] ?? 'VAT')
                         );
@@ -327,7 +325,7 @@ class InvoiceMapper
             foreach ($data['subTotals'] as $subTotal) {
                 // Extract tax category data from subTotal.
                 $taxCategoryData = $subTotal['taxCategory'] ?? [];
-                $percent = $taxCategoryData['percent'] ?? 15;
+                $percent = TaxPercent::required($taxCategoryData, 'tax subtotal tax category');
                 $reasonCode = $taxCategoryData['reasonCode'] ?? null;
                 $reason = $taxCategoryData['reason'] ?? null;
 

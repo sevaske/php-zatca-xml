@@ -13,15 +13,15 @@ use function Sabre\Xml\Deserializer\keyValue;
 
 class DocumentReference implements XmlDeserializable, XmlSerializable
 {
-    private $id;
+    private ?string $id = null;
 
-    private DateTime $issueDate;
+    private ?DateTime $issueDate = null;
 
-    private DateTime $issueTime;
+    private ?DateTime $issueTime = null;
 
-    private int $documentTypeCode;
+    private ?int $documentTypeCode = null;
 
-    public function getId(): string
+    public function getId(): ?string
     {
         return $this->id;
     }
@@ -33,7 +33,7 @@ class DocumentReference implements XmlDeserializable, XmlSerializable
         return $this;
     }
 
-    public function getIssueDate(): DateTime
+    public function getIssueDate(): ?DateTime
     {
         return $this->issueDate;
     }
@@ -45,7 +45,7 @@ class DocumentReference implements XmlDeserializable, XmlSerializable
         return $this;
     }
 
-    public function getIssueTime(): DateTime
+    public function getIssueTime(): ?DateTime
     {
         return $this->issueTime;
     }
@@ -57,7 +57,7 @@ class DocumentReference implements XmlDeserializable, XmlSerializable
         return $this;
     }
 
-    public function getDocumentTypeCode(): int
+    public function getDocumentTypeCode(): ?int
     {
         return $this->documentTypeCode;
     }
@@ -79,10 +79,10 @@ class DocumentReference implements XmlDeserializable, XmlSerializable
         if ($this->id === null) {
             throw new InvalidArgumentException('DocumentReference "ID" is required.');
         }
-        if (! $this->issueDate instanceof DateTime) {
+        if ($this->issueDate === null) {
             throw new InvalidArgumentException('DocumentReference "IssueDate" must be a valid DateTime instance.');
         }
-        if (! $this->issueTime instanceof DateTime) {
+        if ($this->issueTime === null) {
             throw new InvalidArgumentException('DocumentReference "IssueTime" must be a valid DateTime instance.');
         }
         if ($this->documentTypeCode === null) {
@@ -119,11 +119,11 @@ class DocumentReference implements XmlDeserializable, XmlSerializable
     /**
      * The xmlDeserialize method is called during xml reading.
      */
-    public static function xmlDeserialize(Reader $reader): static
+    public static function xmlDeserialize(Reader $reader): self
     {
         $keyValues = keyValue($reader);
 
-        $instance = new static;
+        $instance = new self;
 
         $instance->setId($keyValues[Schema::CBC.'ID'] ?? null);
         if (! empty($keyValues[Schema::CBC.'IssueDate'])) {

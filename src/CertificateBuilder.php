@@ -63,9 +63,9 @@ EOL;
     private $privateKey = null;
 
     /**
-     * The CSR resource/object.
+     * The CSR object.
      *
-     * @var resource|object|null
+     * @var \OpenSSLCertificateSigningRequest|null
      */
     private $csr = null;
 
@@ -407,16 +407,5 @@ EOL;
         }
 
         return implode('; ', $errors);
-    }
-
-    /**
-     * Free private key resource if necessary.
-     */
-    public function __destruct()
-    {
-        if ($this->privateKey && is_resource($this->privateKey)) {
-            // todo DEPRECATED https://www.php.net/manual/en/function.openssl-pkey-free.php
-            openssl_pkey_free($this->privateKey);
-        }
     }
 }

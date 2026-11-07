@@ -63,13 +63,15 @@ class GeneratorInvoice
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
-        $dom->loadXML($xml);
+        if ($dom->loadXML($xml) === false) {
+            throw new \RuntimeException('Failed to format the generated invoice XML.');
+        }
         $dom->encoding = 'UTF-8';
         $formattedXml = $dom->saveXML();
 
         // Convert 2-space indentation to 4-space indentation.
         $formattedXml = preg_replace_callback('/^([ ]+)/m', function ($matches) {
-            return str_repeat('    ', strlen($matches[1]) / 2);
+            return str_repeat('    ', intdiv(strlen($matches[1]), 2));
         }, $formattedXml);
 
         return $formattedXml;
