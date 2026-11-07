@@ -173,6 +173,18 @@ class ReviewFixesTest extends TestCase
         $this->assertSame('2026-01-15T10:00:00', $tags[2]->getValue());
     }
 
+    public function test_address_elements_follow_the_ubl_order(): void
+    {
+        $data = InvoiceDataFixture::simplified();
+        $data['supplier']['address']['additionalNumber'] = '3724';
+        $data['supplier']['address']['additionalStreet'] = 'King Fahd Road';
+
+        preg_match('#<cac:AccountingSupplierParty>.*?<cac:PostalAddress>(.*?)</cac:PostalAddress>#s', self::generate($data), $address);
+        preg_match_all('#<cbc:(\w+)>#', $address[1], $elements);
+
+        $this->assertSame(['StreetName', 'AdditionalStreetName', 'BuildingNumber', 'PlotIdentification', 'CitySubdivisionName', 'CityName', 'PostalZone', 'IdentificationCode'], $elements[1]);
+    }
+
     public function test_invalid_certificate_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);

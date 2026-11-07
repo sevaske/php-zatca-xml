@@ -236,46 +236,26 @@ class Address implements XmlSerializable
      */
     public function xmlSerialize(Writer $writer): void
     {
-        if ($this->streetName !== null) {
-            $writer->write([
-                Schema::CBC.'StreetName' => $this->streetName,
-            ]);
+        // Element order follows the UBL 2.1 AddressType schema.
+        $elements = [
+            'StreetName' => $this->streetName,
+            'AdditionalStreetName' => $this->additionalStreetName,
+            'BuildingNumber' => $this->buildingNumber,
+            'PlotIdentification' => $this->plotIdentification,
+            'CitySubdivisionName' => $this->citySubdivisionName,
+            'CityName' => $this->cityName,
+            'PostalZone' => $this->postalZone,
+            'CountrySubentity' => $this->countrySubentity,
+        ];
+
+        foreach ($elements as $name => $value) {
+            if ($value !== null) {
+                $writer->write([
+                    Schema::CBC.$name => $value,
+                ]);
+            }
         }
-        if ($this->buildingNumber !== null) {
-            $writer->write([
-                Schema::CBC.'BuildingNumber' => $this->buildingNumber,
-            ]);
-        }
-        if ($this->plotIdentification !== null) {
-            $writer->write([
-                Schema::CBC.'PlotIdentification' => $this->plotIdentification,
-            ]);
-        }
-        if ($this->countrySubentity !== null) {
-            $writer->write([
-                Schema::CBC.'CountrySubentity' => $this->countrySubentity,
-            ]);
-        }
-        if ($this->citySubdivisionName !== null) {
-            $writer->write([
-                Schema::CBC.'CitySubdivisionName' => $this->citySubdivisionName,
-            ]);
-        }
-        if ($this->additionalStreetName !== null) {
-            $writer->write([
-                Schema::CBC.'AdditionalStreetName' => $this->additionalStreetName,
-            ]);
-        }
-        if ($this->cityName !== null) {
-            $writer->write([
-                Schema::CBC.'CityName' => $this->cityName,
-            ]);
-        }
-        if ($this->postalZone !== null) {
-            $writer->write([
-                Schema::CBC.'PostalZone' => $this->postalZone,
-            ]);
-        }
+
         if ($this->country !== null) {
             $writer->write([
                 Schema::CAC.'Country' => [

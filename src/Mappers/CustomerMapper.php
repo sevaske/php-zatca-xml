@@ -57,6 +57,8 @@ class CustomerMapper
                 ->setStreetName($data['address']['street'] ?? '')
                 ->setBuildingNumber($data['address']['buildingNumber'] ?? '')
                 ->setCitySubdivisionName($data['address']['subdivision'] ?? '')
+                ->setAdditionalStreetName(self::optional($data['address']['additionalStreet'] ?? null))
+                ->setPlotIdentification(self::optional($data['address']['additionalNumber'] ?? null))
                 ->setCityName($data['address']['city'] ?? '')
                 ->setPostalZone($data['address']['postalZone'] ?? '')
                 ->setCountry($data['address']['country'] ?? 'SA');
@@ -88,5 +90,15 @@ class CustomerMapper
         }
 
         return $party;
+    }
+
+    /**
+     * Empty optional address values are omitted from the XML.
+     */
+    private static function optional(mixed $value): ?string
+    {
+        $value = is_scalar($value) ? trim((string) $value) : '';
+
+        return $value === '' ? null : $value;
     }
 }
