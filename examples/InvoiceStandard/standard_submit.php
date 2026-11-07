@@ -4,7 +4,7 @@
  * Clears a signed standard invoice with ZATCA before handing it over to the buyer.
  *
  * Run standard_invoice.php first: it saves the signed invoice to output/Standard_Invoice_Signed.xml.
- * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api
+ * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api:^3.0
  */
 
 require __DIR__.'/../../vendor/autoload.php';

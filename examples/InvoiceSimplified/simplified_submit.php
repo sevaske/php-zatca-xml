@@ -4,7 +4,7 @@
  * Reports a signed simplified invoice to ZATCA (within 24 hours of issuing it).
  *
  * Run simplified_invoice.php first: it saves the signed invoice to output/Simplified_Invoice_Signed.xml.
- * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api
+ * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api:^3.0
  */
 
 require __DIR__.'/../../vendor/autoload.php';

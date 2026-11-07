@@ -3,7 +3,7 @@
 /**
  * Onboarding, step 3: request the production CSID once the compliance checks are passed.
  *
- * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api
+ * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api:^3.0
  */
 
 require __DIR__.'/../../vendor/autoload.php';
