@@ -114,13 +114,14 @@ class InvoiceMapper
         }
 
         $invoice = new Invoice;
+        $issuedAt = $this->mapIssueDateTime($data['issueDate'], $data['issueTime'] ?? null);
 
         // Map invoice sections using separate mappers.
         $invoice->setUBLExtensions($this->mapUBLExtensions($data['ublExtensions'] ?? []))
             ->setUUID($data['uuid'])
             ->setId($data['id'])
-            ->setIssueDate($this->mapDateTime($data['issueDate']))
-            ->setIssueTime($this->mapDateTime($data['issueTime'] ?? ''))
+            ->setIssueDate($issuedAt)
+            ->setIssueTime(clone $issuedAt)
             ->setInvoiceType($this->mapInvoiceType($data['invoiceType'] ?? []))
             ->setNote($data['note'] ?? null)
             ->setLanguageID($data['languageID'] ?? 'en')
@@ -142,6 +143,7 @@ class InvoiceMapper
             ->setPaymentMeans($this->paymentMeansMapper->map($data['paymentMeans'] ?? []))
             ->setAllowanceCharges($this->mapAllowanceCharge($data ?? []))
             ->setTaxTotal($this->mapTaxTotal($data['taxTotal'] ?? []))
+            ->setTaxAmountInTaxCurrency($data['taxTotal']['taxAmountInTaxCurrency'] ?? null)
             ->setLegalMonetaryTotal($this->mapLegalMonetaryTotal($data['legalMonetaryTotal'] ?? []))
             ->setInvoiceLines($this->invoiceLineMapper->mapInvoiceLines($data['invoiceLines'] ?? []))
             ->setSignature($this->mapSignature($data['signature'] ?? []));
@@ -362,40 +364,56 @@ class InvoiceMapper
      */
     private function mapLegalMonetaryTotal(array $data): LegalMonetaryTotal
     {
-        return (new LegalMonetaryTotal)
+        $legalMonetaryTotal = (new LegalMonetaryTotal)
             ->setLineExtensionAmount($data['lineExtensionAmount'] ?? 0)
             ->setTaxExclusiveAmount($data['taxExclusiveAmount'] ?? 0)
             ->setTaxInclusiveAmount($data['taxInclusiveAmount'] ?? 0)
             ->setPrepaidAmount($data['prepaidAmount'] ?? 0)
             ->setPayableAmount($data['payableAmount'] ?? 0)
             ->setAllowanceTotalAmount($data['allowanceTotalAmount'] ?? 0);
+
+        if (isset($data['chargeTotalAmount'])) {
+            $legalMonetaryTotal->setChargeTotalAmount($data['chargeTotalAmount']);
+        }
+
+        return $legalMonetaryTotal;
     }
 
     /**
-     * Convert a date string to a DateTime object.
+     * Build the issue moment (in UTC) from the issue date and the issue time.
      *
-     * @param  string|null  $dateTimeStr  The date string.
-     * @return DateTime The resulting DateTime object.
-     *
-     * @throws Exception
+     * The calendar date is taken from $issueDate and the clock time from $issueTime,
+     * both interpreted in the timezone of the time value (explicit offset or PHP default),
+     * and only then converted to UTC. This keeps IssueDate and IssueTime describing the
+     * same instant. If $issueTime is empty, the current time is used.
      */
-    private function mapDateTime(?string $dateTimeStr): DateTime
+    private function mapIssueDateTime(string $issueDate, ?string $issueTime): DateTime
     {
-        // target timezone: UTC
-        $utc = new DateTimeZone('UTC');
+        $date = $this->parseDateTime($issueDate);
+        $time = empty($issueTime)
+            ? new DateTime('now', $date->getTimezone())
+            : $this->parseDateTime($issueTime);
 
-        if (empty($dateTimeStr)) {
-            return new DateTime('now', $utc);
-        }
+        $issuedAt = DateTime::createFromFormat(
+            '!Y-m-d H:i:s',
+            $date->format('Y-m-d').' '.$time->format('H:i:s'),
+            $time->getTimezone()
+        );
 
+        return $issuedAt->setTimezone(new DateTimeZone('UTC'));
+    }
+
+    /**
+     * Parse a date/time string.
+     *
+     * Unparsable values fall back to the current UTC date/time (kept for backward compatibility).
+     */
+    private function parseDateTime(string $value): DateTime
+    {
         try {
-            $dt = new DateTime($dateTimeStr);
-            $dt->setTimezone($utc);
-
-            return $dt;
+            return new DateTime($value);
         } catch (Exception) {
-            // On error, return current UTC date/time
-            return new DateTime('now', $utc);
+            return new DateTime('now', new DateTimeZone('UTC'));
         }
     }
 }

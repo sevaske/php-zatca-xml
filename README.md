@@ -204,6 +204,7 @@ $invoiceData = [
     ],
     'taxTotal' => [
         'taxAmount' => 6.86,
+        // 'taxAmountInTaxCurrency' => 25.73, // optional: VAT total in SAR when currencyCode is not SAR
         'subTotals' => [
             0 => [
                 'taxableAmount' => 45.75,
@@ -224,6 +225,7 @@ $invoiceData = [
         'prepaidAmount' => 0,
         'payableAmount' => 52.61,
         'allowanceTotalAmount' => 0.0,
+        // 'chargeTotalAmount' => 0.0, // optional: total of document-level charges (isCharge: true)
     ],
     'invoiceLines' => [
         [
