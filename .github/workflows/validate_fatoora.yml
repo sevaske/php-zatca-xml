@@ -6,94 +6,92 @@ jobs:
   validate_invoice:
     runs-on: ubuntu-latest
 
+    # Download URL of the ZATCA e-invoicing SDK for Java (zip). ZATCA publishes it only behind a login
+    # (https://sandbox.zatca.gov.sa/downloadSDK), so keep a copy, e.g. as a release asset of this repository,
+    # and set its URL as the repository variable ZATCA_SDK_URL (Settings > Secrets and variables > Actions > Variables).
+    env:
+      ZATCA_SDK_URL: ${{ vars.ZATCA_SDK_URL }}
+
     steps:
-      - name: 🛠️ Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-            php-version: '8.1'
-            extensions: mbstring, xml, ctype, json, curl, openssl
+          php-version: '8.1'
+          extensions: mbstring, xml, ctype, json, curl, openssl
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest
+        run: composer install --prefer-dist --no-progress
 
-      - name: Generator Invoice
+      - name: Generate and sign the example documents
         run: |
-          cd examples
-          php InvoiceSimplified/simplified_invoice.php
-          php InvoiceSimplified/simplified_debit_note.php
-          php InvoiceSimplified/simplified_credit_note.php
-          php InvoiceStandard/standard_invoice.php
-          php InvoiceStandard/standard_invoice_debit_note.php
-          php InvoiceStandard/standard_invoice_credit_note.php
+          php examples/InvoiceSimplified/simplified_invoice.php
+          php examples/InvoiceSimplified/simplified_debit_note.php
+          php examples/InvoiceSimplified/simplified_credit_note.php
+          php examples/InvoiceStandard/standard_invoice.php
+          php examples/InvoiceStandard/standard_invoice_debit_note.php
+          php examples/InvoiceStandard/standard_invoice_credit_note.php
 
-      - name: ☕ Install OpenJDK 11.0.26
+      - name: Set up Java 11 (required by the SDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Download the ZATCA SDK
         run: |
-          sudo apt update
-          sudo apt install -y openjdk-11-jdk
-          java -version
-          
-      - name: 📥 Download SDK
+          if [ -z "$ZATCA_SDK_URL" ]; then
+            echo "::error::Repository variable ZATCA_SDK_URL is not set: point it to a zip of the ZATCA e-invoicing SDK for Java."
+            exit 1
+          fi
+          curl -fsSL -o sdk.zip "$ZATCA_SDK_URL"
+          unzip -tq sdk.zip || { echo "::error::The file at ZATCA_SDK_URL is not a valid zip archive."; exit 1; }
+          unzip -q sdk.zip -d sdk
+
+      - name: Validate the signed documents with the SDK
         run: |
-          curl -o sdk.zip "https://latency.sa/zatca-einvoicing-sdk-Java-238-R3.3.9.zip"
-          ls -lah sdk.zip
+          set -o pipefail
 
-      - name: 📦 Extract SDK
-        run: |
-          unzip sdk.zip -d sdk
+          FATOORA="$(find "$PWD/sdk" -type f -path '*/Apps/fatoora' | head -n 1)"
+          if [ -z "$FATOORA" ]; then
+            echo "::error::Apps/fatoora not found in the SDK archive."
+            exit 1
+          fi
 
-      - name: ✅ Validate Invoice using Fatoora
-        run: |
-          cd sdk/zatca-einvoicing-sdk-Java-238-R3.3.9/
-          SDK_CONFIG="${PWD}/Configuration/config.json"
-          export FATOORA_HOME="${PWD}"
-          export PATH=$PATH:$FATOORA_HOME/Apps/
-          export FATOORA_HOME=${PWD}/Apps
-          export SDK_CONFIG=$SDK_CONFIG
-          cd Configuration
-          
-          parentDir="$(dirname "$PWD")"
-          
-          xsdPath=$(jq -r '.xsdPath' defaults.json)
-          xsdPathFileName="$(basename $xsdPath)"
-          
-          enSchematron=$(jq -r '.enSchematron' defaults.json)
-          enSchematronFileName="$(basename $enSchematron)"
-          
-          zatcaSchematron=$(jq -r '.zatcaSchematron' defaults.json)
-          zatcaSchematronFileName="$(basename $zatcaSchematron)"
-          
-          certPath=$(jq -r '.certPath' defaults.json)
-          certPathFileName="$(basename $certPath)"
-          
-          pkPath=$(jq -r '.privateKeyPath' defaults.json)
-          pkPathFileName="$(basename $pkPath)"
-          
-          pihPath=$(jq -r '.pihPath' defaults.json)
-          pihPathFileName="$(basename $pihPath)"
-          
-          usagePath=$(jq -r '.usagePathFile' defaults.json)
-          usagePathFileName="$(basename $usagePath)"
+          SDK_HOME="$(dirname "$(dirname "$FATOORA")")"
+          cd "$SDK_HOME/Configuration"
 
-          jq -n '{"xsdPath":$one, "enSchematron":$two, "zatcaSchematron":$thr,"certPath":$fou, "privateKeyPath":$fiv  ,"pihPath":$six ,"inputPath":$sev,"usagePathFile":$eight}' \
-            --arg one "${parentDir}/Data/Schemas/xsds/UBL2.1/xsd/maindoc/$xsdPathFileName" \
-            --arg two "${parentDir}/Data/Rules/schematrons/$enSchematronFileName"   \
-            --arg thr "${parentDir}/Data/Rules/schematrons/$zatcaSchematronFileName" \
-            --arg fou "${parentDir}/Data/Certificates/$certPathFileName" \
-            --arg fiv "${parentDir}/Data/Certificates/$pkPathFileName" \
-            --arg six "${parentDir}/Data/PIH/$pihPathFileName"  \
-            --arg sev "${parentDir}/Data/Input"  \
-            --arg eight "${parentDir}/Configuration/$usagePathFileName"  >config.json
+          # config.json with absolute paths, built from the file names in defaults.json
+          name() { basename "$(jq -r ".$1" defaults.json)"; }
+          jq -n \
+            --arg xsd "$SDK_HOME/Data/Schemas/xsds/UBL2.1/xsd/maindoc/$(name xsdPath)" \
+            --arg en "$SDK_HOME/Data/Rules/schematrons/$(name enSchematron)" \
+            --arg ksa "$SDK_HOME/Data/Rules/schematrons/$(name zatcaSchematron)" \
+            --arg cert "$SDK_HOME/Data/Certificates/$(name certPath)" \
+            --arg key "$SDK_HOME/Data/Certificates/$(name privateKeyPath)" \
+            --arg pih "$SDK_HOME/Data/PIH/$(name pihPath)" \
+            --arg input "$SDK_HOME/Data/Input" \
+            --arg usage "$SDK_HOME/Configuration/$(name usagePathFile)" \
+            '{xsdPath: $xsd, enSchematron: $en, zatcaSchematron: $ksa, certPath: $cert, privateKeyPath: $key, pihPath: $pih, inputPath: $input, usagePathFile: $usage}' \
+            > config.json
 
-          cd ../Apps
-          chmod +x fatoora
-          # ✅ Validate Invoice using Fatoora
-          fatoora -validate -invoice ../../../examples/output/Simplified_Invoice_Signed.xml
-          fatoora -validate -invoice ../../../examples/output/Simplified_Debit_Note_Signed.xml
-          fatoora -validate -invoice ../../../examples/output/Simplified_Credit_Note_Signed.xml
-          fatoora -validate -invoice ../../../examples/output/Standard_Invoice_Signed.xml
-          fatoora -validate -invoice ../../../examples/output/Standard_Debit_Note_Signed.xml
-          fatoora -validate -invoice ../../../examples/output/Standard_Credit_Note_Signed.xml
+          export SDK_CONFIG="$SDK_HOME/Configuration/config.json"
+          export FATOORA_HOME="$SDK_HOME/Apps"
+          export PATH="$PATH:$FATOORA_HOME"
+          chmod +x "$FATOORA"
 
+          failed=0
+          for invoice in "$GITHUB_WORKSPACE"/examples/*/output/*_Signed.xml; do
+            echo "::group::$(basename "$invoice")"
+            fatoora -validate -invoice "$invoice" | tee validation.log || true
+            echo "::endgroup::"
+
+            if ! grep -Eq 'GLOBAL VALIDATION RESULT *= *PASSED' validation.log; then
+              echo "::error::Validation failed: $(basename "$invoice")"
+              failed=1
+            fi
+          done
+
+          exit $failed
