@@ -20,7 +20,7 @@ try {
     );
 
     // UUID read from the XML, invoice hash computed the same way ZATCA does
-    $invoice = SignedInvoice::fromXml(file_get_contents('output/Simplified_Invoice_Signed.xml'));
+    $invoice = SignedInvoice::fromXml(file_get_contents(__DIR__.'/output/Simplified_Invoice_Signed.xml'));
 
     $result = Client::sandbox()->invoices($productionCsid)->report($invoice);
 

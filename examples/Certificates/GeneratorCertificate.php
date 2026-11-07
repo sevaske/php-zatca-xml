@@ -7,7 +7,7 @@ use Saleh7\Zatca\Exceptions\CertificateBuilderException;
 
 // Usage example with random data:
 try {
-    (new CertificateBuilder)
+    $builder = (new CertificateBuilder)
         // The Organization Identifier must be 15 digits, starting andending with 3
         ->setOrganizationIdentifier('399999999900003')
         // string $solutionName .. The solution provider name
@@ -23,8 +23,11 @@ try {
         ->setInvoiceType(1000)
         ->setProduction(false)                          // true = Production |  false = Testing
         ->setBusinessCategory('Technology')             // Your business category like food, real estate, etc
-        // Generate and save the certificate and private key
-        ->generateAndSave('output/certificate.csr', 'output/private.pem');
+        ->generate();
+
+    is_dir(__DIR__.'/output') || mkdir(__DIR__.'/output');
+    file_put_contents(__DIR__.'/output/certificate.csr', $builder->getCsr());
+    file_put_contents(__DIR__.'/output/private.pem', $builder->getPrivateKey()); // keep it secret, it signs every invoice
 
     echo "Certificate and private key saved.\n";
 } catch (CertificateBuilderException $e) {

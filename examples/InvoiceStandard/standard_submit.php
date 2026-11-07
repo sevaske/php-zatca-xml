@@ -19,13 +19,13 @@ try {
         json_decode(file_get_contents(__DIR__.'/../Certificates/output/production-csid.json'), true)
     );
 
-    $invoice = SignedInvoice::fromXml(file_get_contents('output/Standard_Invoice_Signed.xml'));
+    $invoice = SignedInvoice::fromXml(file_get_contents(__DIR__.'/output/Standard_Invoice_Signed.xml'));
 
     $result = Client::sandbox()->invoices($productionCsid)->clear($invoice);
 
     if ($result->isCleared()) {
         // Always store the cleared invoice: it is stamped by ZATCA and is the document for the buyer.
-        file_put_contents('output/Standard_Invoice_Cleared.xml', $result->getClearedInvoice());
+        file_put_contents(__DIR__.'/output/Standard_Invoice_Cleared.xml', $result->getClearedInvoice());
         echo 'Cleared'.($result->hasWarnings() ? ' with warnings' : '').", saved to output/Standard_Invoice_Cleared.xml\n";
     } elseif ($result->isClearanceDisabled()) {
         echo "Clearance is deactivated: report the invoice instead.\n";

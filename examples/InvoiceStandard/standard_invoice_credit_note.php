@@ -196,8 +196,10 @@ $certificate = (new Certificate(
 ));
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
-$generatorInvoice->saveXMLFile('Standard_Credit_Note.xml');
+is_dir(__DIR__.'/output') || mkdir(__DIR__.'/output');
+file_put_contents(__DIR__.'/output/Standard_Credit_Note.xml', $generatorInvoice->getXML());
 echo "Standard Credit Note Generated Successfully\n";
 
-$signedInvoice->saveXMLFile('Standard_Credit_Note_Signed.xml');
+// store the signed XML exactly as returned: any change breaks the hash and the signature
+file_put_contents(__DIR__.'/output/Standard_Credit_Note_Signed.xml', $signedInvoice->getXML());
 echo "Standard Credit Note Signed Successfully\n";

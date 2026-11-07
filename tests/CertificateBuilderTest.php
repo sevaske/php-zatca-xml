@@ -9,13 +9,12 @@ use Saleh7\Zatca\Exceptions\CertificateBuilderException;
 final class CertificateBuilderTest extends TestCase
 {
     /**
-     * Test that CertificateBuilder generates and saves CSR and private key.
+     * Test that CertificateBuilder generates a CSR and a private key.
      */
-    public function test_generate_and_save(): void
+    public function test_generate_csr_and_private_key(): void
     {
-        // Create CertificateBuilder and set required parameters.
-        $builder = new CertificateBuilder;
-        $builder->setOrganizationIdentifier('312345678901233')
+        $builder = (new CertificateBuilder)
+            ->setOrganizationIdentifier('312345678901233')
             ->setSerialNumber('Saleh', '1n', 'SME00023')
             ->setCommonName('My Organization')
             ->setOrganizationName('My Company')
@@ -23,35 +22,11 @@ final class CertificateBuilderTest extends TestCase
             ->setAddress('Riyadh 1234 Street')
             ->setInvoiceType(1100)
             ->setProduction(true)
-            ->setBusinessCategory('Technology');
+            ->setBusinessCategory('Technology')
+            ->generate();
 
-        // Create temporary files for CSR and private key.
-        $csrPath = tempnam(sys_get_temp_dir(), 'csr_');
-        $privateKeyPath = tempnam(sys_get_temp_dir(), 'key_');
-
-        // Generate and save CSR and private key.
-        $builder->generateAndSave($csrPath, $privateKeyPath);
-
-        // Assert files exist.
-        $this->assertFileExists($csrPath, 'CSR file should exist.');
-        $this->assertFileExists($privateKeyPath, 'Private key file should exist.');
-
-        // Read file contents.
-        $csrContent = file_get_contents($csrPath);
-        $keyContent = file_get_contents($privateKeyPath);
-
-        $this->assertNotEmpty($csrContent, 'CSR content should not be empty.');
-        $this->assertNotEmpty($keyContent, 'Private key content should not be empty.');
-
-        // Check that CSR content has the correct header.
-        $this->assertStringContainsString('BEGIN CERTIFICATE REQUEST', $csrContent, 'CSR should have proper header.');
-
-        // Check that private key content has a valid header (could be EC PRIVATE KEY or PRIVATE KEY).
-        $this->assertMatchesRegularExpression('/BEGIN (EC )?PRIVATE KEY/', $keyContent, 'Private key should have a valid header.');
-
-        // Clean up temporary files.
-        unlink($csrPath);
-        unlink($privateKeyPath);
+        $this->assertStringContainsString('BEGIN CERTIFICATE REQUEST', $builder->getCsr());
+        $this->assertMatchesRegularExpression('/BEGIN (EC )?PRIVATE KEY/', $builder->getPrivateKey());
     }
 
     /**

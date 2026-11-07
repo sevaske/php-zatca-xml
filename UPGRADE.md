@@ -21,7 +21,6 @@ generated with wrong data now fail before they reach ZATCA.
 | QR values longer than 255 bytes (e.g. a long Arabic seller name) produced a corrupt QR code | `InvalidArgumentException` |
 | Document-level charges without `chargeTotalAmount` were accepted | `chargeTotalAmount` is required when a charge (`isCharge: true`) is present |
 | Amounts always used `SAR` unless passed to `GeneratorInvoice::invoice()` | the invoice's `currencyCode` is used; `taxTotal.taxAmountInTaxCurrency` (VAT total in SAR) is required for other currencies |
-| `new Storage('dir')` changed the base path of every later `Storage` | the base path belongs to the instance; set a global default with `Storage::setBasePath()` |
 | A missing VAT `percent` defaulted to 15 | the `percent` is required in tax categories, subtotals and allowance tax categories |
 | Price allowances defaulted to charges (`isCharge: true`) | they default to allowances (`isCharge: false`) |
 | Only the last entry of `notes` was written | every note is written; `Invoice::addNote()` / `getNotes()` |
@@ -37,6 +36,22 @@ generated with wrong data now fail before they reach ZATCA.
 - An `IssueTime` with a zero UTC offset (`+00:00`, `GMT`, ...) is written with the `Z` suffix.
 - Element order follows the UBL schema in `AllowanceCharge` (`BaseAmount`) and `InvoiceLine`
   (`AccountingCost` and `DocumentReference` before `AllowanceCharge`).
+
+## Removed: file storage
+
+The library no longer writes files. `Storage`, `ZatcaStorageException` and the methods that used them are removed;
+store the strings yourself:
+
+| 3.x | 4.0 |
+|---|---|
+| `$generator->saveXMLFile('invoice.xml', 'output')` | `file_put_contents('output/invoice.xml', $generator->getXML())` |
+| `$signed->saveXMLFile('signed.xml', 'output')` | `file_put_contents('output/signed.xml', $signed->getXML())` |
+| `$builder->generateAndSave($csrPath, $keyPath)` | `$builder->generate(); file_put_contents($csrPath, $builder->getCsr()); file_put_contents($keyPath, $builder->getPrivateKey());` |
+| `$builder->savePrivateKey($path)` | `file_put_contents($path, $builder->getPrivateKey())` |
+| `Storage::setBasePath()`, `new Storage(...)` | your application's own file handling |
+| `catch (ZatcaStorageException $e)` | handle the result of `file_put_contents()` |
+
+Store signed XML exactly as returned by `getXML()`: any change breaks the hash and the signature.
 
 ## API changes
 

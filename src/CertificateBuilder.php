@@ -3,7 +3,6 @@
 namespace Saleh7\Zatca;
 
 use Saleh7\Zatca\Exceptions\CertificateBuilderException;
-use Saleh7\Zatca\Exceptions\ZatcaStorageException;
 
 /**
  * Class CertificateBuilder
@@ -212,29 +211,6 @@ EOL;
     }
 
     /**
-     * Generate and save CSR and key to files.
-     *
-     * @param  string  $csrPath  Path to save the CSR (default: certificate.csr)
-     * @param  string  $privateKeyPath  Path to save the private key (default: private.pem)
-     *
-     * @throws CertificateBuilderException
-     */
-    public function generateAndSave(string $csrPath = 'certificate.csr', string $privateKeyPath = 'private.pem'): void
-    {
-        $this->generate();
-
-        $csrContent = $this->getCsr();
-
-        try {
-            (new Storage)->put($csrPath, $csrContent);
-        } catch (ZatcaStorageException $e) {
-            throw new CertificateBuilderException('Failed to save CSR.', $e->context());
-        }
-
-        $this->savePrivateKey($privateKeyPath);
-    }
-
-    /**
      * Get CSR as a string.
      */
     public function getCsr(): string
@@ -248,18 +224,6 @@ EOL;
         }
 
         return $csr;
-    }
-
-    /**
-     * Save private key to a file.
-     *
-     * @throws CertificateBuilderException
-     */
-    public function savePrivateKey(string $path): void
-    {
-        if (! openssl_pkey_export_to_file($this->privateKey, $path)) {
-            throw new CertificateBuilderException('Private key export failed: '.$this->getOpenSslErrors());
-        }
     }
 
     /**
@@ -343,10 +307,8 @@ EOL;
             throw new CertificateBuilderException('Failed to create temporary config file.');
         }
 
-        try {
-            (new Storage)->put($tempFile, $configContent);
-        } catch (ZatcaStorageException $e) {
-            throw new CertificateBuilderException('Failed to write temporary config file.', $e->context());
+        if (file_put_contents($tempFile, $configContent) === false) {
+            throw new CertificateBuilderException('Failed to write temporary config file.', ['path' => $tempFile]);
         }
 
         return $tempFile;

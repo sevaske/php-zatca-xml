@@ -13,8 +13,13 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
   invalid certificates throw instead of producing a wrong invoice.
 - `chargeTotalAmount` is required with document-level charges; foreign-currency invoices use their currency and
   require the VAT total in SAR (`taxAmountInTaxCurrency`).
-- `Storage` keeps its base path per instance.
 - `CertificateBuilder::generate()` returns the builder; `TaxCategoryCode` enum renamed to `TaxCategoryCodeEnum`.
+
+### Removed
+
+- File storage: `Storage`, `ZatcaStorageException`, `GeneratorInvoice::saveXMLFile()`, `InvoiceSigner::saveXMLFile()`,
+  `CertificateBuilder::generateAndSave()` and `savePrivateKey()`. Store `getXML()`, `getCsr()` and `getPrivateKey()`
+  yourself.
 
 ### Added
 

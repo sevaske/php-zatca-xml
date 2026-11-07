@@ -8,7 +8,6 @@ use Sabre\Xml\Reader;
 use Sabre\Xml\Writer;
 use Sabre\Xml\XmlDeserializable;
 use Sabre\Xml\XmlSerializable;
-use Saleh7\Zatca\Exceptions\ZatcaStorageException;
 
 use function Sabre\Xml\Deserializer\mixedContent;
 
@@ -125,7 +124,7 @@ class Attachment implements XmlDeserializable, XmlSerializable
     /**
      * The xmlSerialize method is called during xml writing.
      *
-     * @throws ZatcaStorageException
+     * @throws InvalidArgumentException if the attachment file cannot be read
      * @throws Exception
      */
     public function xmlSerialize(Writer $writer): void
@@ -133,7 +132,13 @@ class Attachment implements XmlDeserializable, XmlSerializable
         $this->validate();
 
         if (! empty($this->filePath)) {
-            $fileContents = base64_encode((new Storage)->get($this->filePath));
+            $contents = @file_get_contents($this->filePath);
+
+            if ($contents === false) {
+                throw new InvalidArgumentException(sprintf('Failed to read the attachment file "%s".', $this->filePath));
+            }
+
+            $fileContents = base64_encode($contents);
             $fileName = basename($this->filePath);
             $mimeType = $this->getFilePathMimeType();
         } else {

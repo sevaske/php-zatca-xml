@@ -533,11 +533,13 @@ validation messages, and for standard documents the cleared invoice returned by 
 
 | Exception | When |
 |---|---|
-| `InvalidArgumentException` | missing or invalid invoice data (thrown by the mapper and the validators), invalid dates, QR values longer than 255 bytes, invalid certificate |
+| `InvalidArgumentException` | missing or invalid invoice data (thrown by the mapper and the validators), invalid dates, QR values longer than 255 bytes, invalid certificate, unreadable attachment file |
 | `Saleh7\Zatca\Exceptions\CertificateBuilderException` | the CSR or the private key cannot be generated |
-| `Saleh7\Zatca\Exceptions\ZatcaStorageException` | a file cannot be written by `saveXMLFile()` / `generateAndSave()` |
 
 The library exceptions extend `Saleh7\Zatca\Exceptions\ZatcaException` and expose `context()`.
+
+The library does not write files: store `getXML()`, `getHash()`, `getCsr()` and `getPrivateKey()` wherever your
+application keeps its data.
 
 ## Upgrading
 

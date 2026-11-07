@@ -190,8 +190,10 @@ $certificate = (new Certificate(
 ));
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
-$outputXML = GeneratorInvoice::invoice($invoice)->saveXMLFile('Simplified_Invoice.xml');
+is_dir(__DIR__.'/output') || mkdir(__DIR__.'/output');
+file_put_contents(__DIR__.'/output/Simplified_Invoice.xml', $generatorInvoice->getXML());
 echo "Simplified Invoice Generated Successfully\n";
 
-$signedInvoice->saveXMLFile('Simplified_Invoice_Signed.xml');
+// store the signed XML exactly as returned: any change breaks the hash and the signature
+file_put_contents(__DIR__.'/output/Simplified_Invoice_Signed.xml', $signedInvoice->getXML());
 echo "Simplified Invoice Signed Successfully\n";
