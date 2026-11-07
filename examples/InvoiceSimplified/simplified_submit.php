@@ -1,49 +1,44 @@
 <?php
 
+/**
+ * Reports a signed simplified invoice to ZATCA (within 24 hours of issuing it).
+ *
+ * Run simplified_invoice.php first: it saves the signed invoice to output/Simplified_Invoice_Signed.xml.
+ * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api
+ */
+
 require __DIR__.'/../../vendor/autoload.php';
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
-use Saleh7\Zatca\InvoiceSigner;
-use Sevaske\ZatcaApi\Exceptions\ZatcaException;
-use Sevaske\ZatcaApi\ZatcaAuth;
-use Sevaske\ZatcaApi\ZatcaClient;
+use Sevaske\ZatcaApi\Client;
+use Sevaske\ZatcaApi\Credentials\ProductionCsid;
+use Sevaske\ZatcaApi\Exception\ZatcaException;
+use Sevaske\ZatcaApi\Invoice\SignedInvoice;
 
 try {
-    $simulationPath = __DIR__.'/output/simulation.json';
-    $simulation = json_decode(file_get_contents($simulationPath), true);
-
-    $httpClient = new Client;
-    $factory = new HttpFactory;
-    $client = new ZatcaClient(
-        $httpClient,
-        $factory, // RequestFactoryInterface
-        $factory, // StreamFactoryInterface
-        'simulation' // environment: sandbox | simulation | production
+    $productionCsid = ProductionCsid::fromArray(
+        json_decode(file_get_contents(__DIR__.'/../Certificates/output/production-csid.json'), true)
     );
 
-    $client->setAuthToken(new ZatcaAuth(
-        certificate: $simulation['certificate'],
-        secret: $simulation['secret'])
-    );
+    // UUID read from the XML, invoice hash computed the same way ZATCA does
+    $invoice = SignedInvoice::fromXml(file_get_contents('output/Simplified_Invoice_Signed.xml'));
 
-    /**
-     * @var InvoiceSigner $signedInvoice
-     */
-    $response = $client->reportingInvoice(
-        invoice: $signedInvoice->getInvoice(),
-        invoiceHash: $signedInvoice->getHash(),
-        uuid: 'generated uuid',
-    );
+    $result = Client::sandbox()->invoices($productionCsid)->report($invoice);
 
-    if (! $response->success()) {
-        throw new ZatcaException('Failed request.', $response->errors());
+    if ($result->isReported()) {
+        echo 'Reported'.($result->hasWarnings() ? ' with warnings' : '').".\n";
+    } elseif ($result->isAlreadyReported()) {
+        echo "Already reported earlier.\n";
+    } else {
+        echo "Rejected:\n";
     }
 
-    print_r($response->toArray());
+    foreach ($result->getValidationResults()->getErrorMessages() as $error) {
+        echo " - error {$error}\n";
+    }
+
+    foreach ($result->getValidationResults()->getWarningMessages() as $warning) {
+        echo " - warning {$warning}\n";
+    }
 } catch (ZatcaException $e) {
-    echo 'API Error: '.$e->getMessage()."\n";
-    print_r($e->context());
-} catch (\Exception $e) {
-    echo 'Error: '.$e->getMessage();
+    echo 'Error: '.$e->getMessage()."\n";
 }

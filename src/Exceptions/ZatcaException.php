@@ -2,8 +2,6 @@
 
 namespace Saleh7\Zatca\Exceptions;
 
-use Sevaske\Support\Exceptions\ContextableException;
-use Sevaske\ZatcaApi\Interfaces\ZatcaExceptionInterface;
 use Throwable;
 
 /**
@@ -11,13 +9,43 @@ use Throwable;
  *
  * Base exception class for ZATCA-related errors.
  */
-class ZatcaException extends ContextableException implements ZatcaExceptionInterface
+class ZatcaException extends \Exception implements ZatcaExceptionInterface
 {
     protected string $defaultMessage = 'An error occurred.';
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $context = [];
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
     public function __construct(?string $message = null, array $context = [], int $code = 0, ?Throwable $previous = null)
     {
-        parent::__construct($message ?? $this->getDefaultMessage(), $context, $code, $previous);
+        parent::__construct($message ?? $this->getDefaultMessage(), $code, $previous);
+
+        $this->context = $context;
+    }
+
+    /**
+     * Adds context data to the exception.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public function withContext(array $context): static
+    {
+        $this->context = array_merge($this->context, $context);
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function context(): array
+    {
+        return $this->context;
     }
 
     protected function getDefaultMessage(): string

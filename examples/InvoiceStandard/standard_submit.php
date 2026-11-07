@@ -1,52 +1,41 @@
 <?php
 
+/**
+ * Clears a signed standard invoice with ZATCA before handing it over to the buyer.
+ *
+ * Run standard_invoice.php first: it saves the signed invoice to output/Standard_Invoice_Signed.xml.
+ * Requires sevaske/zatca-api 3.x: composer require sevaske/zatca-api
+ */
+
 require __DIR__.'/../../vendor/autoload.php';
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
-use Saleh7\Zatca\InvoiceSigner;
-use Sevaske\ZatcaApi\Exceptions\ZatcaException;
-use Sevaske\ZatcaApi\ZatcaAuth;
-use Sevaske\ZatcaApi\ZatcaClient;
+use Sevaske\ZatcaApi\Client;
+use Sevaske\ZatcaApi\Credentials\ProductionCsid;
+use Sevaske\ZatcaApi\Exception\ZatcaException;
+use Sevaske\ZatcaApi\Invoice\SignedInvoice;
 
 try {
-    $simulationPath = __DIR__.'/output/simulation.json';
-    $simulation = json_decode(file_get_contents($simulationPath), true);
-
-    $httpClient = new Client;
-    $factory = new HttpFactory;
-    $client = new ZatcaClient(
-        $httpClient,
-        $factory, // RequestFactoryInterface
-        $factory, // StreamFactoryInterface
-        'simulation' // environment: sandbox | simulation | production
+    $productionCsid = ProductionCsid::fromArray(
+        json_decode(file_get_contents(__DIR__.'/../Certificates/output/production-csid.json'), true)
     );
 
-    $client->setAuthToken(new ZatcaAuth(
-        certificate: $simulation['certificate'],
-        secret: $simulation['secret'])
-    );
+    $invoice = SignedInvoice::fromXml(file_get_contents('output/Standard_Invoice_Signed.xml'));
 
-    /**
-     * @var InvoiceSigner $signedInvoice
-     */
-    $response = $client->clearanceInvoice(
-        invoice: $signedInvoice->getInvoice(),
-        invoiceHash: $signedInvoice->getHash(),
-        uuid: 'generated uuid',
-    );
+    $result = Client::sandbox()->invoices($productionCsid)->clear($invoice);
 
-    if (! $response->success()) {
-        throw new ZatcaException('Failed request.', $response->errors());
+    if ($result->isCleared()) {
+        // Always store the cleared invoice: it is stamped by ZATCA and is the document for the buyer.
+        file_put_contents('output/Standard_Invoice_Cleared.xml', $result->getClearedInvoice());
+        echo 'Cleared'.($result->hasWarnings() ? ' with warnings' : '').", saved to output/Standard_Invoice_Cleared.xml\n";
+    } elseif ($result->isClearanceDisabled()) {
+        echo "Clearance is deactivated: report the invoice instead.\n";
+    } else {
+        echo "Rejected:\n";
+
+        foreach ($result->getValidationResults()->getErrorMessages() as $error) {
+            echo " - {$error}\n";
+        }
     }
-
-    print_r($response->toArray());
-
-    echo "WARNING! YOU ALWAYS MUST SAVE THE CLEARED INVOICE IN YOUR DATABASE/STORAGE\n";
-    echo $response->clearedInvoice();
 } catch (ZatcaException $e) {
-    echo 'API Error: '.$e->getMessage()."\n";
-    print_r($e->context());
-} catch (\Exception $e) {
-    echo 'Error: '.$e->getMessage();
+    echo 'Error: '.$e->getMessage()."\n";
 }

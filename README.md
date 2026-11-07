@@ -19,7 +19,7 @@ A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Sa
 - ✅ Generate and manage certificates (CSR, private keys)
 - ✅ Sign invoices with cryptographic signatures
 - ✅ Generate QR codes for invoices
-- ✅ Integrates with ZATCA API via `sevaske/zatca-api`
+- ✅ Works with [`sevaske/zatca-api`](https://github.com/sevaske/zatca-api) 3.x for onboarding and submission (optional)
 
 ---
 
@@ -27,6 +27,12 @@ A PHP library for generating **ZATCA-compliant** e-invoices in XML format for Sa
 
 ```bash
 composer require sevaske/php-zatca-xml:^4.0
+```
+
+To talk to the ZATCA API (onboarding, compliance checks, reporting, clearance) install the API client as well:
+
+```bash
+composer require sevaske/zatca-api:^3.0
 ```
 
 ### Requirements
@@ -38,17 +44,17 @@ composer require sevaske/php-zatca-xml:^4.0
 ## Integration Workflow
 
 ```
-1. Generate CSR
+1. Generate CSR and private key                     (this library)
    ↓
-2. Request compliance certificate
+2. Request compliance CSID                          (zatca-api)
    ↓
-3. Generate invoice XML
+3. Generate and sign sample invoices                (this library)
    ↓
-4. Sign invoice
+4. Compliance checks of the samples                 (zatca-api)
    ↓
-5. Submit to ZATCA (simulation)
+5. Request production CSID                          (zatca-api)
    ↓
-6. Generate production certificate
+6. Generate, sign and report / clear real invoices  (this library + zatca-api)
 ```
 
 ---
@@ -80,41 +86,19 @@ file_put_contents('output/certificate.csr', $csr);
 file_put_contents('output/private.pem', $pem);
 ```
 
-### Compliance certificate & set authentication
+### Compliance CSID
 
 ```php
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
-use Sevaske\ZatcaApi\ZatcaAuth;
-use Sevaske\ZatcaApi\ZatcaClient;
+use Sevaske\ZatcaApi\Client;
 
-$httpClient = new Client();
-$factory = new HttpFactory();
+// Client::sandbox() accepts the test OTP "123345"; in simulation / production use the OTP from the Fatoora portal.
+$zatca = Client::sandbox();
 
-// Initialize ZatcaClient with sandbox environment
-$client = new ZatcaClient(
-    $httpClient,
-    $factory, // RequestFactoryInterface
-    $factory, // StreamFactoryInterface
-    'sandbox' // environment: sandbox | simulation | production
-);
-$response = $client->complianceCertificate($csr, '112233');
-$credentials = [
-    'requestId' => $response->requestId(),
-    'certificate' => $response->certificate(),
-    'secret' => $response->secret(),
-];
+$complianceCsid = $zatca->onboarding()
+    ->requestComplianceCsid($csr, '123345')
+    ->toComplianceCsid();
 
-if (! $response->success()) {
-    // failed
-}
-
-$outputFile = __DIR__.'/output/simulation.json';
-file_put_contents($outputFile, json_encode($credentials, JSON_PRETTY_PRINT));
-
-// to make authorized requests
-$authToken = new ZatcaAuth($response->certificate(), $response->secret());
-$client->setAuthToken($authToken);
+file_put_contents('output/compliance-csid.json', json_encode($complianceCsid->toArray(), JSON_PRETTY_PRINT));
 ```
 
 ### Basic XML Generation
@@ -204,7 +188,7 @@ $invoiceData = [
     ],
     'taxTotal' => [
         'taxAmount' => 6.86,
-        // 'taxAmountInTaxCurrency' => 25.73, // optional: VAT total in SAR when currencyCode is not SAR
+        // 'taxAmountInTaxCurrency' => 25.73, // required (VAT total in SAR) when currencyCode is not SAR
         'subTotals' => [
             0 => [
                 'taxableAmount' => 45.75,
@@ -225,7 +209,7 @@ $invoiceData = [
         'prepaidAmount' => 0,
         'payableAmount' => 52.61,
         'allowanceTotalAmount' => 0.0,
-        // 'chargeTotalAmount' => 0.0, // optional: total of document-level charges (isCharge: true)
+        // 'chargeTotalAmount' => 0.0, // required when document-level charges (isCharge: true) are present
     ],
     'invoiceLines' => [
         [
@@ -302,14 +286,15 @@ $invoice = $invoiceMapper->mapToInvoice($invoiceData);
 // Generate the invoice XML
 $generatorInvoice = GeneratorInvoice::invoice($invoice);
 
-$simulation = json_decode(file_get_contents('output/simulation.json'), true);
+// the compliance CSID signs the compliance samples, the production CSID signs real invoices
+$csid = Sevaske\ZatcaApi\Credentials\ComplianceCsid::fromArray(json_decode(file_get_contents('output/compliance-csid.json'), true));
 $privateKey = file_get_contents('output/private.pem');
 
 // sign the invoice XML with the certificate
 $certificate = new Certificate(
-    $simulation['certificate'],
+    $csid->getCertificate(),
     $privateKey,
-    $simulation['secret'],
+    $csid->getSecret(),
 );
 $signedInvoice = InvoiceSigner::signInvoice($generatorInvoice->getXML(), $certificate);
 
@@ -318,118 +303,64 @@ $signedInvoice->getHash();
 $signedInvoice->getQRCode();
 ```
 
+### Compliance checks
+
+Before requesting the production CSID, check one signed sample of every document type the EGS unit will issue
+(standard / simplified invoice, credit note, debit note), signed with the compliance CSID:
+
+```php
+use Sevaske\ZatcaApi\Invoice\SignedInvoice;
+
+$check = $zatca->compliance($complianceCsid)->checkInvoice(
+    new SignedInvoice($signedInvoice->getXML(), $signedInvoice->getHash(), $invoiceData['uuid'])
+);
+
+if (! $check->isPassed()) {
+    foreach ($check->getValidationResults()->getErrorMessages() as $error) {
+        echo $error, PHP_EOL; // "[BR-KSA-37] The seller address building number must contain 4 digits."
+    }
+}
+```
+
+### Production CSID
+
+```php
+$productionCsid = $zatca->onboarding()
+    ->requestProductionCsid($complianceCsid)
+    ->toProductionCsid();
+
+file_put_contents('output/production-csid.json', json_encode($productionCsid->toArray(), JSON_PRETTY_PRINT));
+```
+
+Sign real invoices with `$productionCsid->getCertificate()` and the same private key.
+
 ### Submit invoice
 
 ```php
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
-use Saleh7\Zatca\InvoiceSigner;
-use Sevaske\ZatcaApi\ZatcaAuth;
-use Sevaske\ZatcaApi\ZatcaClient;
-use Sevaske\ZatcaApi\Exceptions\ZatcaException;
+use Sevaske\ZatcaApi\Client;
+use Sevaske\ZatcaApi\Credentials\ProductionCsid;
+use Sevaske\ZatcaApi\Invoice\SignedInvoice;
 
-/**
-* @var Sevaske\ZatcaApi\ZatcaClient $client
-*/
+$zatca = Client::production();
+$productionCsid = ProductionCsid::fromArray(json_decode(file_get_contents('output/production-csid.json'), true));
 
-try {
-    // load simulation credential
-    $simulationPath = __DIR__.'/output/simulation.json';
-    $simulation = json_decode(file_get_contents($simulationPath), true);
+// UUID read from the XML, invoice hash computed the same way ZATCA does
+$invoice = SignedInvoice::fromXml($signedInvoice->getXML());
 
-    $client->setAuthToken(new ZatcaAuth(
-        certificate: $simulation['certificate'],
-        secret: $simulation['secret'],
-    ));
+// Simplified invoices, credit and debit notes (B2C): report within 24 hours
+$result = $zatca->invoices($productionCsid)->report($invoice);
+$result->isReported();
 
-    /**
-     * @var InvoiceSigner $signedInvoice
-     */
-    $response = $client->reportingInvoice(
-        invoice: $signedInvoice->getInvoice(),
-        invoiceHash: $signedInvoice->getHash(),
-        uuid: 'generated uuid',
-    );
+// Standard invoices, credit and debit notes (B2B): clear before handing over to the buyer
+$result = $zatca->invoices($productionCsid)->clear($invoice);
 
-    if (! $response->success()) {
-        throw new ZatcaException('Failed request.', $response->errors());
-    }
-    
-    $response->errors();
-    $response->warnings();
-    $response->toArray();
-} catch (ZatcaException|Exception $e) {
-    // handle
+if ($result->isCleared()) {
+    $clearedXml = $result->getClearedInvoice(); // always store it: this is the document for the buyer
 }
 ```
 
-#### Submission Types
-
-**Simplified Invoice (B2C) - Reporting:**
-```php
-$response = $client->reportingInvoice($xml, $hash, $uuid);
-```
-
-**Standard Invoice (B2B) - Clearance:**
-```php
-$response = $client->clearanceInvoice($xml, $hash, $uuid);
-```
-
-#### Simulation Testing
-
-Before production, submit 6 test invoices:
-
-```php
-/**
-* @var Sevaske\ZatcaApi\ZatcaClient $client
-*/
-
-// Switch to simulation environment
-$client = $client->withEnvironment('simulation');
-
-// Submit 3 simplified invoices
-$client->reportingInvoice($simplifiedInvoiceXML, $hash, $uuid);
-$client->reportingInvoice($simplifiedDebitNoteXML, $hash, $uuid);
-$client->reportingInvoice($simplifiedCreditNoteXML, $hash, $uuid);
-
-// Submit 3 standard invoices
-$client->clearanceInvoice($standardInvoiceXML, $hash, $uuid);
-$client->clearanceInvoice($standardDebitNoteXML, $hash, $uuid);
-$client->clearanceInvoice($standardCreditNoteXML, $hash, $uuid);
-```
-
-### Production Certificate
-
-After simulation you are able to switch to the production environment:
-
-```php
-/**
-* @var Sevaske\ZatcaApi\ZatcaClient $client
-*/
-// load simulation credential
-$simulationPath = __DIR__.'/output/simulation.json';
-$simulation = json_decode(file_get_contents($simulationPath), true);
-
-$response = $client->productionCertificate($simulation['requestId']);
-$credentials = [
-    'requestId' => $response->requestId(),
-    'certificate' => $response->certificate(),
-    'secret' => $response->secret(),
-];
-
-if (! $response->success()) {
-    // failed
-}
-
-$outputFile = __DIR__.'/output/production.json';
-file_put_contents($outputFile, json_encode($credentials, JSON_PRETTY_PRINT));
-
-// to make authorized PRODUCTION requests
-$authToken = new ZatcaAuth($response->certificate(), $response->secret());
-$client->setAuthToken($authToken);
-
-// you are able to submit production invoices now
-```
+A rejected invoice is returned as a result, not thrown: see `getValidationResults()`. More in the
+[zatca-api documentation](https://github.com/sevaske/zatca-api#readme).
 
 ---
 
