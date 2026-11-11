@@ -64,3 +64,5 @@ Store signed XML exactly as returned by `getXML()`: any change breaks the hash a
   (`CurrencyWriter`), so concurrent or repeated generations no longer share state. `GeneratorInvoice::invoice()` and
   `getXML()` are unchanged. Amount parts (`TaxTotal`, `LegalMonetaryTotal`, ...) serialized outside
   `GeneratorInvoice` now throw a `LogicException` instead of reading an uninitialized static.
+- `InvoiceType::setInvoice()` and `setInvoiceType()` take a non-null `string`. Passing `null` used to trigger a PHP 8.1
+  deprecation and store an empty string; it now throws a `TypeError`. Empty strings still throw `InvalidArgumentException`.

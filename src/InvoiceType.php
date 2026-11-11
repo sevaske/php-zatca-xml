@@ -39,9 +39,9 @@ class InvoiceType implements XmlSerializable
      *
      * @throws InvalidArgumentException if provided value is empty.
      */
-    public function setInvoice(?string $invoice): self
+    public function setInvoice(string $invoice): self
     {
-        if ($invoice !== null && trim($invoice) === '') {
+        if (trim($invoice) === '') {
             throw new InvalidArgumentException('Invoice category cannot be empty.');
         }
         $this->invoice = strtolower($invoice);
@@ -54,9 +54,9 @@ class InvoiceType implements XmlSerializable
      *
      * @throws InvalidArgumentException if provided value is empty.
      */
-    public function setInvoiceType(?string $invoiceType): self
+    public function setInvoiceType(string $invoiceType): self
     {
-        if ($invoiceType !== null && trim($invoiceType) === '') {
+        if (trim($invoiceType) === '') {
             throw new InvalidArgumentException('Invoice type cannot be empty.');
         }
         $this->invoiceType = strtolower($invoiceType);
