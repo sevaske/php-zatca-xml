@@ -142,7 +142,7 @@ class Price implements XmlSerializable
                 'name' => Schema::CBC.'PriceAmount',
                 'value' => number_format($this->priceAmount, 4, '.', ''),
                 'attributes' => [
-                    'currencyID' => GeneratorInvoice::$currencyID,
+                    'currencyID' => CurrencyWriter::currencyOf($writer),
                 ],
             ],
         ]);

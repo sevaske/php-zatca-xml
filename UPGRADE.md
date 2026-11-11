@@ -60,3 +60,7 @@ Store signed XML exactly as returned by `getXML()`: any change breaks the hash a
 - `AllowanceCharge::getTaxCategory()` returns the list of tax categories (`?array`), as it always did at runtime.
 - `DocumentReference` getters return `null` for values that are not set.
 - `InvoiceAmountValidator::validateInvoiceLines()` takes line-level allowances and charges into account.
+- `GeneratorInvoice::$currencyID` (static) is removed. The document currency is carried by the XML writer
+  (`CurrencyWriter`), so concurrent or repeated generations no longer share state. `GeneratorInvoice::invoice()` and
+  `getXML()` are unchanged. Amount parts (`TaxTotal`, `LegalMonetaryTotal`, ...) serialized outside
+  `GeneratorInvoice` now throw a `LogicException` instead of reading an uninitialized static.

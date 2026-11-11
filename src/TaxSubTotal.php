@@ -92,7 +92,7 @@ class TaxSubTotal implements XmlSerializable
     {
         $this->validate();
 
-        $currencyID = GeneratorInvoice::$currencyID;
+        $currencyID = CurrencyWriter::currencyOf($writer);
 
         // Write TaxableAmount and TaxAmount elements
         $writer->write([

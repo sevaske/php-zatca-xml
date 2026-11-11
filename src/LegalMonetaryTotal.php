@@ -211,7 +211,7 @@ class LegalMonetaryTotal implements XmlSerializable
      */
     public function xmlSerialize(Writer $writer): void
     {
-        $currencyID = GeneratorInvoice::$currencyID;
+        $currencyID = CurrencyWriter::currencyOf($writer);
 
         $elements = [];
 

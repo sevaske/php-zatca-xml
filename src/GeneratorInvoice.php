@@ -3,7 +3,6 @@
 namespace Saleh7\Zatca;
 
 use DOMDocument;
-use Sabre\Xml\Service;
 
 /**
  * Class GeneratorInvoice
@@ -12,9 +11,6 @@ use Sabre\Xml\Service;
  */
 class GeneratorInvoice
 {
-    /** @var string Currency identifier used in invoice amounts. */
-    public static string $currencyID;
-
     /** @var string Holds the generated XML */
     private string $generatedXml;
 
@@ -32,9 +28,8 @@ class GeneratorInvoice
     public static function invoice(Invoice $invoice, ?string $currencyId = null): self
     {
         $instance = new self;
-        self::$currencyID = $currencyId ?? $invoice->getInvoiceCurrencyCode();
-
-        $xmlService = new Service;
+        // The currency travels with the writer, not in global state.
+        $xmlService = new CurrencyXmlService($currencyId ?? $invoice->getInvoiceCurrencyCode());
         $xmlService->namespaceMap = [
             'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2' => '',
             'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2' => 'cac',

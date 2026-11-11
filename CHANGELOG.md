@@ -36,3 +36,4 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
 - Price allowances default to allowances; a single `classifiedTaxCategory` object is accepted.
 - UBL element order in `AllowanceCharge` and `InvoiceLine`; VAT percent written with two decimals.
 - PHPStan level 5 clean.
+- The document currency is no longer kept in the static `GeneratorInvoice::$currencyID` (race between concurrent generations, leaking between calls, uninitialized access); it travels with the XML writer. Generated XML is unchanged.

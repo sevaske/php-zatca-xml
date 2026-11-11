@@ -85,7 +85,7 @@ class TaxTotal implements XmlSerializable
     {
         $this->validate();
 
-        $currencyID = GeneratorInvoice::$currencyID;
+        $currencyID = CurrencyWriter::currencyOf($writer);
 
         // Write TaxAmount element
         $writer->write([
