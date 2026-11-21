@@ -62,27 +62,41 @@ jobs:
           SDK_HOME="$(dirname "$(dirname "$FATOORA")")"
           cd "$SDK_HOME/Configuration"
 
-          # config.json with absolute paths, built from the file names in defaults.json
-          name() { basename "$(jq -r ".$1" defaults.json)"; }
+          # config.json with absolute paths. The files named in defaults.json are looked up by name under Data/:
+          # the directory names in the SDK archive do not always match defaults.json in case (e.g. Rules/Schematrons
+          # vs rules/schematrons), which only works on case-insensitive file systems.
+          find_file() {
+            local file
+            file="$(find "$SDK_HOME/$1" -type f -name "$(basename "$(jq -r ".$2" defaults.json)")" | head -n 1)"
+            if [ -z "$file" ]; then
+              echo "::error::$2 ($(jq -r ".$2" defaults.json)) not found in the SDK." >&2
+              return 1
+            fi
+            echo "$file"
+          }
+          XSD="$(find_file Data xsdPath)"
+          EN="$(find_file Data enSchematron)"
+          KSA="$(find_file Data zatcaSchematron)"
+          CERT="$(find_file Data certPath)"
+          KEY="$(find_file Data privateKeyPath)"
+          PIH="$(find_file Data pihPath)"
+          USAGE="$(find_file Configuration usagePathFile)"
+          INPUT="$(find "$SDK_HOME/Data" -maxdepth 1 -type d -iname input | head -n 1)"
+
           jq -n \
-            --arg xsd "$SDK_HOME/Data/Schemas/xsds/UBL2.1/xsd/maindoc/$(name xsdPath)" \
-            --arg en "$SDK_HOME/Data/Rules/schematrons/$(name enSchematron)" \
-            --arg ksa "$SDK_HOME/Data/Rules/schematrons/$(name zatcaSchematron)" \
-            --arg cert "$SDK_HOME/Data/Certificates/$(name certPath)" \
-            --arg key "$SDK_HOME/Data/Certificates/$(name privateKeyPath)" \
-            --arg pih "$SDK_HOME/Data/PIH/$(name pihPath)" \
-            --arg input "$SDK_HOME/Data/Input" \
-            --arg usage "$SDK_HOME/Configuration/$(name usagePathFile)" \
+            --arg xsd "$XSD" --arg en "$EN" --arg ksa "$KSA" --arg cert "$CERT" --arg key "$KEY" \
+            --arg pih "$PIH" --arg input "${INPUT:-$SDK_HOME/Data/Input}" --arg usage "$USAGE" \
             '{xsdPath: $xsd, enSchematron: $en, zatcaSchematron: $ksa, certPath: $cert, privateKeyPath: $key, pihPath: $pih, inputPath: $input, usagePathFile: $usage}' \
             > config.json
+          cat config.json
 
           {
             echo "SDK_HOME=$SDK_HOME"
             echo "SDK_CONFIG=$SDK_HOME/Configuration/config.json"
             echo "FATOORA_HOME=$SDK_HOME/Apps"
             # The SDK validates the signature against its own sample certificate, so the examples are signed with it.
-            echo "ZATCA_CERT=$SDK_HOME/Data/Certificates/$(name certPath)"
-            echo "ZATCA_PRIVATE_KEY=$SDK_HOME/Data/Certificates/$(name privateKeyPath)"
+            echo "ZATCA_CERT=$CERT"
+            echo "ZATCA_PRIVATE_KEY=$KEY"
           } >> "$GITHUB_ENV"
 
       - name: Set up PHP
