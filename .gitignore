@@ -77,3 +77,10 @@ $RECYCLE.BIN/
 /tests/*.xml
 composer.lock
 /.phpunit.result.cache
+
+# output of the invoice examples
+/examples/output/
+
+# ZATCA SDK checked out by the validation workflow
+/.zatca-sdk/
+/.zatca-sdk-repo/
