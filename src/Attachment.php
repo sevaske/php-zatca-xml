@@ -147,13 +147,17 @@ class Attachment implements XmlDeserializable, XmlSerializable
             $mimeType = $this->mimeType;
         }
 
+        // The file name is optional (UBL); ZATCA documents such as PIH carry only the mime code.
+        $attributes = ['mimeCode' => $mimeType];
+
+        if ($fileName !== '') {
+            $attributes['filename'] = $fileName;
+        }
+
         $writer->write([
             'name' => Schema::CBC.'EmbeddedDocumentBinaryObject',
             'value' => $fileContents,
-            'attributes' => [
-                'mimeCode' => $mimeType,
-                'filename' => $fileName,
-            ],
+            'attributes' => $attributes,
         ]);
 
         if ($this->externalReference) {
@@ -174,8 +178,8 @@ class Attachment implements XmlDeserializable, XmlSerializable
 
         return (new self)
             ->setBase64Content(
-                $embeddedDocumentBinaryObject['value'] ?? null,
-                $embeddedDocumentBinaryObject['attributes']['filename'] ?? null,
+                $embeddedDocumentBinaryObject['value'] ?? '',
+                $embeddedDocumentBinaryObject['attributes']['filename'] ?? '',
                 $embeddedDocumentBinaryObject['attributes']['mimeCode'] ?? null
             );
     }

@@ -585,8 +585,8 @@ class Invoice implements XmlSerializable
         if ($this->accountingSupplierParty === null) {
             throw new InvalidArgumentException('Missing invoice accountingSupplierParty.');
         }
-        if ($this->accountingCustomerParty === null) {
-            throw new InvalidArgumentException('Missing invoice accountingCustomerParty.');
+        if ($this->accountingCustomerParty === null && ! $this->isSimplified()) {
+            throw new InvalidArgumentException('Missing invoice accountingCustomerParty (required for standard invoices).');
         }
         if ($this->additionalDocumentReferences === null) {
             throw new InvalidArgumentException('Missing invoice additionalDocumentReferences.');
@@ -710,11 +710,12 @@ class Invoice implements XmlSerializable
             ]);
         }
 
-        // AccountingCustomerParty / Party
-        if ($this->accountingCustomerParty !== null) {
+        // AccountingCustomerParty / Party. The element is mandatory in UBL; a simplified (B2C) invoice
+        // without buyer details gets an empty Party, the same as the mapper produces for a missing customer.
+        if ($this->accountingCustomerParty !== null || $this->isSimplified()) {
             $writer->write([
                 Schema::CAC.'AccountingCustomerParty' => [
-                    Schema::CAC.'Party' => $this->accountingCustomerParty,
+                    Schema::CAC.'Party' => $this->accountingCustomerParty ?? new Party,
                 ],
             ]);
         }
@@ -794,5 +795,13 @@ class Invoice implements XmlSerializable
         }
 
         return $time;
+    }
+
+    /**
+     * Whether the invoice is a simplified (B2C) document, for which buyer details are optional.
+     */
+    private function isSimplified(): bool
+    {
+        return $this->invoiceType?->getInvoice() === 'simplified';
     }
 }

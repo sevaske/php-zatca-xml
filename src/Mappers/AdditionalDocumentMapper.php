@@ -22,8 +22,8 @@ class AdditionalDocumentMapper
      *                            - uuid: string (optional)
      *                            - attachment: array (optional) with keys:
      *                            - content: string
-     *                            - mimeCode: string (default: 'base64')
-     *                            - mimeType: string (default: 'text/plain')
+     *                            - mimeType: string (default: 'text/plain'), written as the mimeCode attribute
+     *                            - fileName: string (optional), written as the filename attribute
      * @return AdditionalDocumentReference[] Array of mapped AdditionalDocumentReference objects.
      */
     public function mapAdditionalDocuments(array $documents): array
@@ -50,7 +50,7 @@ class AdditionalDocumentMapper
                 $attachment = (new Attachment)
                     ->setBase64Content(
                         $attachmentData['content'] ?? '',
-                        $attachmentData['mimeCode'] ?? 'base64',
+                        (string) ($attachmentData['fileName'] ?? ''),
                         $attachmentData['mimeType'] ?? 'text/plain'
                     );
                 $docRef->setAttachment($attachment);

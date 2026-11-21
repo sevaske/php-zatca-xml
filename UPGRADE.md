@@ -36,6 +36,9 @@ generated with wrong data now fail before they reach ZATCA.
 - An `IssueTime` with a zero UTC offset (`+00:00`, `GMT`, ...) is written with the `Z` suffix.
 - Element order follows the UBL schema in `AllowanceCharge` (`BaseAmount`) and `InvoiceLine`
   (`AccountingCost` and `DocumentReference` before `AllowanceCharge`).
+- The PIH attachment is written without the `filename` attribute: `<cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">`
+  instead of `... filename="base64">`. The mapper key `attachment.mimeCode` (used as the file name) is ignored; pass
+  `attachment.fileName` if you need the attribute. The MIME code is still set with `attachment.mimeType`.
 
 ## Removed: file storage
 
@@ -66,3 +69,5 @@ Store signed XML exactly as returned by `getXML()`: any change breaks the hash a
   `GeneratorInvoice` now throw a `LogicException` instead of reading an uninitialized static.
 - `InvoiceType::setInvoice()` and `setInvoiceType()` take a non-null `string`. Passing `null` used to trigger a PHP 8.1
   deprecation and store an empty string; it now throws a `TypeError`. Empty strings still throw `InvalidArgumentException`.
+- `Invoice` no longer requires `setAccountingCustomerParty()` for simplified invoices: an empty
+  `cac:AccountingCustomerParty` is written, the same as the mapper produces without `customer`.

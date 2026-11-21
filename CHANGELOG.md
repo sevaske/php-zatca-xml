@@ -26,6 +26,9 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
 - Several notes per invoice (`Invoice::addNote()`, `getNotes()`, mapper `notes`).
 - `UnitCodeEnum`.
 - Examples for the full onboarding (compliance CSID, production CSID) and submission with zatca-api 3.
+- A simplified invoice built with the `Invoice` API may omit the customer (`setAccountingCustomerParty()`); an empty
+  `cac:AccountingCustomerParty` is written, as the mapper already did. Standard invoices still require it.
+- Mapper key `additionalDocuments[].attachment.fileName` for the optional `filename` attribute.
 
 ### Fixed
 
@@ -38,3 +41,6 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
 - PHPStan level 5 clean.
 - `InvoiceType::setInvoice()` and `setInvoiceType()` no longer accept `null` (it triggered a PHP 8.1 deprecation and stored an empty string); a `TypeError` is thrown instead. Empty strings still throw `InvalidArgumentException`.
 - The document currency is no longer kept in the static `GeneratorInvoice::$currencyID` (race between concurrent generations, leaking between calls, uninitialized access); it travels with the XML writer. Generated XML is unchanged.
+- The PIH attachment is no longer written with `filename="base64"`: the mapper used the `mimeCode` key (default
+  `'base64'`) as the file name. An empty file name is omitted, as in the ZATCA samples.
+- `Attachment::xmlDeserialize()` no longer fails with a `TypeError` on an attachment without a `filename` attribute.
