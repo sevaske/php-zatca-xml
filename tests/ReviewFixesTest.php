@@ -23,16 +23,27 @@ use Saleh7\Zatca\Tests\Fixtures\InvoiceDataFixture;
 class ReviewFixesTest extends TestCase
 {
     /**
-     * Hash returned by the signer for the fixture (accepted by the ZATCA sandbox).
+     * Hash returned by the signer for the fixture (the fixture invoice signed with the library's test certificate).
      */
-    private const FIXTURE_HASH = 'JDXm4w8lD0YRVX06qGEvWvd7EPr4Kalg2QcpCB0qKgI=';
+    private const FIXTURE_HASH = 'y4BmIgGAzHxo6nN9TbkyNCgs9SHT+viZWGvigfSqQ/Y=';
 
     /**
-     * Public ZATCA simulation sample certificate and key (same as in the examples).
+     * The library's own self-signed test certificate (tests/Fixtures).
      */
-    private const CERTIFICATE = 'MIID3jCCA4SgAwIBAgITEQAAOAPF90Ajs/xcXwABAAA4AzAKBggqhkjOPQQDAjBiMRUwEwYKCZImiZPyLGQBGRYFbG9jYWwxEzARBgoJkiaJk/IsZAEZFgNnb3YxFzAVBgoJkiaJk/IsZAEZFgdleHRnYXp0MRswGQYDVQQDExJQUlpFSU5WT0lDRVNDQTQtQ0EwHhcNMjQwMTExMDkxOTMwWhcNMjkwMTA5MDkxOTMwWjB1MQswCQYDVQQGEwJTQTEmMCQGA1UEChMdTWF4aW11bSBTcGVlZCBUZWNoIFN1cHBseSBMVEQxFjAUBgNVBAsTDVJpeWFkaCBCcmFuY2gxJjAkBgNVBAMTHVRTVC04ODY0MzExNDUtMzk5OTk5OTk5OTAwMDAzMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeKOCAgcwggIDMIGtBgNVHREEgaUwgaKkgZ8wgZwxOzA5BgNVBAQMMjEtVFNUfDItVFNUfDMtZWQyMmYxZDgtZTZhMi0xMTE4LTliNTgtZDlhOGYxMWU0NDVmMR8wHQYKCZImiZPyLGQBAQwPMzk5OTk5OTk5OTAwMDAzMQ0wCwYDVQQMDAQxMTAwMREwDwYDVQQaDAhSUlJEMjkyOTEaMBgGA1UEDwwRU3VwcGx5IGFjdGl2aXRpZXMwHQYDVR0OBBYEFEX+YvmmtnYoDf9BGbKo7ocTKYK1MB8GA1UdIwQYMBaAFJvKqqLtmqwskIFzVvpP2PxT+9NnMHsGCCsGAQUFBwEBBG8wbTBrBggrBgEFBQcwAoZfaHR0cDovL2FpYTQuemF0Y2EuZ292LnNhL0NlcnRFbnJvbGwvUFJaRUludm9pY2VTQ0E0LmV4dGdhenQuZ292LmxvY2FsX1BSWkVJTlZPSUNFU0NBNC1DQSgxKS5jcnQwDgYDVR0PAQH/BAQDAgeAMDwGCSsGAQQBgjcVBwQvMC0GJSsGAQQBgjcVCIGGqB2E0PsShu2dJIfO+xnTwFVmh/qlZYXZhD4CAWQCARIwHQYDVR0lBBYwFAYIKwYBBQUHAwMGCCsGAQUFBwMCMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwMwCgYIKwYBBQUHAwIwCgYIKoZIzj0EAwIDSAAwRQIhALE/ichmnWXCUKUbca3yci8oqwaLvFdHVjQrveI9uqAbAiA9hC4M8jgMBADPSzmd2uiPJA6gKR3LE03U75eqbC/rXA==';
+    private static function certificate(): Certificate
+    {
+        return new Certificate(self::fixture('test-certificate.txt'), self::privateKey(), 'secret');
+    }
 
-    private const PRIVATE_KEY = 'MHQCAQEEIL14JV+5nr/sE8Sppaf2IySovrhVBtt8+yz+g4NRKyz8oAcGBSuBBAAKoUQDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeA==';
+    private static function privateKey(): string
+    {
+        return self::fixture('test-private-key.txt');
+    }
+
+    private static function fixture(string $file): string
+    {
+        return trim(file_get_contents(__DIR__.'/Fixtures/'.$file));
+    }
 
     private static function generate(array $data): string
     {
@@ -165,7 +176,7 @@ class ReviewFixesTest extends TestCase
         $invoice->setIssueDate(new DateTime('2026-01-15', new DateTimeZone('Asia/Riyadh')));
         $invoice->setIssueTime(new DateTime('2026-01-15 10:00:00', new DateTimeZone('Asia/Riyadh')));
         $xml = GeneratorInvoice::invoice($invoice)->getXML();
-        $certificate = new Certificate(self::CERTIFICATE, self::PRIVATE_KEY, 'secret');
+        $certificate = self::certificate();
 
         $tags = InvoiceExtension::fromString($xml)->generateQrTagsArray($certificate, self::FIXTURE_HASH, 'c2lnbmF0dXJl');
 
@@ -190,7 +201,7 @@ class ReviewFixesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to load the X.509 certificate');
 
-        new Certificate('not a certificate', self::PRIVATE_KEY, 'secret');
+        new Certificate('not a certificate', self::privateKey(), 'secret');
     }
 
     public function test_exceptions_carry_context_without_external_packages(): void

@@ -6,59 +6,58 @@ jobs:
   validate_invoice:
     runs-on: ubuntu-latest
 
-    # Download URL of the ZATCA e-invoicing SDK for Java (zip). ZATCA publishes it only behind a login
-    # (https://sandbox.zatca.gov.sa/downloadSDK), so keep a copy, e.g. as a release asset of this repository,
-    # and set its URL as the repository variable ZATCA_SDK_URL (Settings > Secrets and variables > Actions > Variables).
+    # The ZATCA e-invoicing SDK for Java is not committed to this repository. It is checked out from a private
+    # repository (default: sevaske/zatca-sdk, override with the repository variable ZATCA_SDK_REPOSITORY) that holds
+    # the SDK zip as downloaded from ZATCA (or the extracted SDK). Access uses a read-only deploy key of that repository,
+    # stored here as the secret ZATCA_SDK_DEPLOY_KEY.
+    # Without the secret (forks, pull requests from forks) the validation is skipped with a warning.
     env:
-      ZATCA_SDK_URL: ${{ vars.ZATCA_SDK_URL }}
+      ZATCA_SDK_REPOSITORY: ${{ vars.ZATCA_SDK_REPOSITORY || 'sevaske/zatca-sdk' }}
+      HAS_SDK_KEY: ${{ secrets.ZATCA_SDK_DEPLOY_KEY != '' }}
 
     steps:
+      - name: Check access to the ZATCA SDK
+        id: sdk
+        run: |
+          if [ "$HAS_SDK_KEY" = "true" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Secret ZATCA_SDK_DEPLOY_KEY is not available: skipping the validation with the ZATCA SDK."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
+        if: steps.sdk.outputs.available == 'true'
         uses: actions/checkout@v4
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - name: Checkout the ZATCA SDK (private)
+        if: steps.sdk.outputs.available == 'true'
+        uses: actions/checkout@v4
         with:
-          php-version: '8.1'
-          extensions: mbstring, xml, ctype, json, curl, openssl
+          repository: ${{ env.ZATCA_SDK_REPOSITORY }}
+          ssh-key: ${{ secrets.ZATCA_SDK_DEPLOY_KEY }}
+          path: .zatca-sdk-repo
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Generate and sign the example documents
+      - name: Prepare the ZATCA SDK
+        if: steps.sdk.outputs.available == 'true'
         run: |
-          php examples/InvoiceSimplified/simplified_invoice.php
-          php examples/InvoiceSimplified/simplified_debit_note.php
-          php examples/InvoiceSimplified/simplified_credit_note.php
-          php examples/InvoiceStandard/standard_invoice.php
-          php examples/InvoiceStandard/standard_invoice_debit_note.php
-          php examples/InvoiceStandard/standard_invoice_credit_note.php
+          set -euo pipefail
 
-      - name: Set up Java 11 (required by the SDK)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '11'
-
-      - name: Download the ZATCA SDK
-        run: |
-          if [ -z "$ZATCA_SDK_URL" ]; then
-            echo "::error::Repository variable ZATCA_SDK_URL is not set: point it to a zip of the ZATCA e-invoicing SDK for Java."
-            exit 1
+          # Extract the newest SDK zip, if the repository holds one; otherwise use the extracted SDK as is.
+          ZIP="$(find .zatca-sdk-repo -type f -name '*.zip' | sort -V | tail -n 1)"
+          if [ -n "$ZIP" ]; then
+            echo "Using $(basename "$ZIP")"
+            unzip -q "$ZIP" -d .zatca-sdk
+          else
+            mv .zatca-sdk-repo .zatca-sdk
           fi
-          curl -fsSL -o sdk.zip "$ZATCA_SDK_URL"
-          unzip -tq sdk.zip || { echo "::error::The file at ZATCA_SDK_URL is not a valid zip archive."; exit 1; }
-          unzip -q sdk.zip -d sdk
 
-      - name: Validate the signed documents with the SDK
-        run: |
-          set -o pipefail
-
-          FATOORA="$(find "$PWD/sdk" -type f -path '*/Apps/fatoora' | head -n 1)"
+          FATOORA="$(find "$PWD/.zatca-sdk" -type f -path '*/Apps/fatoora' | head -n 1)"
           if [ -z "$FATOORA" ]; then
-            echo "::error::Apps/fatoora not found in the SDK archive."
+            echo "::error::Apps/fatoora not found in $ZATCA_SDK_REPOSITORY."
             exit 1
           fi
+          chmod +x "$FATOORA"
 
           SDK_HOME="$(dirname "$(dirname "$FATOORA")")"
           cd "$SDK_HOME/Configuration"
@@ -77,10 +76,49 @@ jobs:
             '{xsdPath: $xsd, enSchematron: $en, zatcaSchematron: $ksa, certPath: $cert, privateKeyPath: $key, pihPath: $pih, inputPath: $input, usagePathFile: $usage}' \
             > config.json
 
-          export SDK_CONFIG="$SDK_HOME/Configuration/config.json"
-          export FATOORA_HOME="$SDK_HOME/Apps"
+          {
+            echo "SDK_HOME=$SDK_HOME"
+            echo "SDK_CONFIG=$SDK_HOME/Configuration/config.json"
+            echo "FATOORA_HOME=$SDK_HOME/Apps"
+            # The SDK validates the signature against its own sample certificate, so the examples are signed with it.
+            echo "ZATCA_CERT=$SDK_HOME/Data/Certificates/$(name certPath)"
+            echo "ZATCA_PRIVATE_KEY=$SDK_HOME/Data/Certificates/$(name privateKeyPath)"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up PHP
+        if: steps.sdk.outputs.available == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, ctype, json, curl, openssl
+
+      - name: Install Composer dependencies
+        if: steps.sdk.outputs.available == 'true'
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate and sign the example documents
+        if: steps.sdk.outputs.available == 'true'
+        run: |
+          php examples/InvoiceSimplified/simplified_invoice.php
+          php examples/InvoiceSimplified/simplified_debit_note.php
+          php examples/InvoiceSimplified/simplified_credit_note.php
+          php examples/InvoiceStandard/standard_invoice.php
+          php examples/InvoiceStandard/standard_invoice_debit_note.php
+          php examples/InvoiceStandard/standard_invoice_credit_note.php
+
+      - name: Set up Java 11 (required by the SDK)
+        if: steps.sdk.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Validate the signed documents with the SDK
+        if: steps.sdk.outputs.available == 'true'
+        run: |
+          set -o pipefail
           export PATH="$PATH:$FATOORA_HOME"
-          chmod +x "$FATOORA"
+          cd "$SDK_HOME/Configuration"
 
           failed=0
           for invoice in "$GITHUB_WORKSPACE"/examples/*/output/*_Signed.xml; do

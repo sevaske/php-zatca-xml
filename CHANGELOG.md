@@ -29,6 +29,10 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
 - A simplified invoice built with the `Invoice` API may omit the customer (`setAccountingCustomerParty()`); an empty
   `cac:AccountingCustomerParty` is written, as the mapper already did. Standard invoices still require it.
 - Mapper key `additionalDocuments[].attachment.fileName` for the optional `filename` attribute.
+- The examples sign with a certificate read from files (`ZATCA_CERT`, `ZATCA_PRIVATE_KEY`); by default the library's own
+  self-signed test certificate. The repository no longer contains ZATCA's sample certificate, key or sample invoice.
+- CI validates the signed examples with the ZATCA SDK checked out from a private repository (deploy key secret
+  `ZATCA_SDK_DEPLOY_KEY`); without the secret the validation is skipped.
 
 ### Fixed
 
@@ -44,3 +48,5 @@ See [UPGRADE.md](UPGRADE.md) for upgrading from 3.x.
 - The PIH attachment is no longer written with `filename="base64"`: the mapper used the `mimeCode` key (default
   `'base64'`) as the file name. An empty file name is omitted, as in the ZATCA samples.
 - `Attachment::xmlDeserialize()` no longer fails with a `TypeError` on an attachment without a `filename` attribute.
+- The examples use the correct previous invoice hash of the first invoice (base64 of the SHA-256 hex of `0`)
+  instead of `MA==`, which the ZATCA SDK rejected (KSA-13).

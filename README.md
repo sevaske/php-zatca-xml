@@ -124,7 +124,9 @@ Requirements: PHP 8.1+, extensions `dom`, `libxml`, `openssl`, `mbstring`, `file
 
 Steps 1, 2 and 5 happen once per EGS unit. Steps 3, 4 and 6 happen for every document.
 
-Runnable versions of every step are in [`examples/`](examples).
+Runnable versions of every step are in [`examples/`](examples). The invoice examples sign with the library's own
+self-signed test certificate, which ZATCA does not accept; point `ZATCA_CERT` and `ZATCA_PRIVATE_KEY` to your
+certificate and key files to sign with them (see [`examples/Certificates/signing-certificate.php`](examples/Certificates/signing-certificate.php)).
 
 ## Step 1. Private key and CSR
 
